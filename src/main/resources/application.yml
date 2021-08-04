@@ -40,6 +40,11 @@ zevrant:
       location: localhost
       port: 3310
       timeout: 99999999
+  bucketName: 'zevrant-resources'
+    keystore: 'prod/ssl/keystore.p12'
+    ssl:
+      key-store: /storage/keys/zevrant-services.p12
+      key-store-password: ${ssl.keystore.password}
   encrypted:
     properties: rds/backup/password
 
