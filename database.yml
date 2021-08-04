@@ -51,11 +51,11 @@ spec:
                   name: oauth-db-password
                   key: password
             - name: PGDATA
-              value: /storage/keys/db/$ENVIRONMENT/oauth2/
+              value: /storage/keys/db/$ENVIRONMENT/backup/
             - name: POSTGRES_USER
               value: zevrant
             - name: POSTGRES_DB
-              value: oauth2
+              value: backup
           ports:
             - containerPort: 5432
 
