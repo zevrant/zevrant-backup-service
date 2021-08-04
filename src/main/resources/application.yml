@@ -1,0 +1,63 @@
+spring:
+  main:
+    allow-bean-definition-overriding: true
+  profiles:
+    active: local
+  datasource:
+    url: jdbc:postgresql://localhost:5428/backup?createDatabaseIfNotExist=true
+    username: sa
+    password: example
+  jpa:
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  application:
+    name: zevrant-backup-service
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+
+server:
+  port: 9009
+  servlet:
+    context-path: /${spring.application.name}
+  ssl:
+    key-store: /storage/keys/zevrant-services.p12
+    key-store-type: PKCS12
+    key-store-password: ${password}
+oauth2:
+  keystore:
+    alias: 1
+
+zevrant:
+  backup:
+    directory: /storage/backups/userdata
+  services:
+    proxy:
+      baseUrl: https://localhost:9009
+    clamAv:
+      location: localhost
+      port: 3310
+      timeout: 99999999
+
+
+#ReAdd iff needed
+#context:
+#  initializer:
+#    classes: net.zevrant.services.security.common.secrets.management.services.EncryptedPropertyContextInitializer
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  health:
+    ldap:
+      enabled: false
+
+
+logging:
+  level:
+    root: info
+    com.zevrant.services: debug

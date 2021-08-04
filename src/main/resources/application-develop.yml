@@ -1,0 +1,27 @@
+security:
+  oauth2:
+    resource:
+      jwk:
+        key-set-uri: ${zevrant.services.proxy.baseUrl}zevrant-oauth2-service/token
+
+server:
+  ssl:
+    key-store: /usr/local/microservices/zevrant-home-services/zevrant-backup-service/zevrant-services.p12
+    key-store-type: PKCS12
+    key-store-password: ${password}
+
+spring:
+  datasource:
+    url: 'jdbc:postgresql://zevrant-backup-service-db:5432/backup'
+    username: 'zevrant'
+    password: ${rds.backup.password}
+  jpa:
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+zevrant:
+  services:
+    proxy:
+      baseUrl: https://zevrant-oauth2-service

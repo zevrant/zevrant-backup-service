@@ -1,0 +1,26 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1
+      author: zevrant
+      failOnError: false
+      changes:
+        - createTable:
+            tableName: FILE
+            columns:
+              - column:
+                  name: ID
+                  type: varchar(255)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: filepath
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: uploaded_by
+                  type: varchar(255)
+                  constraints:
+                    - nullable: false

@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: zevrant-backup-service
+spec:
+  ports:
+    - port: 443
+      targetPort: 9009
+  selector:
+    app: zevrant-backup-service
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zevrant-backup-service-deployment
+  labels:
+    app: zevrant-backup-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: zevrant-backup-service
+  template:
+    metadata:
+      labels:
+        app: zevrant-backup-service
+    spec:
+      imagePullSecrets:
+        - name: regcred
+      nodeSelector:
+        architecture: amd64
+      containers:
+        - name: zevrant-backup-service
+          image: zevrant/zevrant-backup-service:$VERSION
+          ports:
+            - containerPort: 9009
+          readinessProbe:
+            httpGet:
+              scheme: HTTPS
+              path: /zevrant-backup-service/actuator/health
+              port: 9009
+            initialDelaySeconds: 10
+          livenessProbe:
+            httpGet:
+              scheme: HTTPS
+              path: /zevrant-backup-service/actuator/health
+              port: 9009
+            initialDelaySeconds: 10
+          env:
+            - name: PROXY_CREDENTIALS
+              valueFrom:
+                secretKeyRef:
+                  name: proxy-creds
+                  key: proxyCreds
+            - name: ENVIRONMENT
+              value: $ENVIRONMENT
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
