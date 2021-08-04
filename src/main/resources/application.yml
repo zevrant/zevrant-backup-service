@@ -40,12 +40,8 @@ zevrant:
       location: localhost
       port: 3310
       timeout: 99999999
-
-
-#ReAdd iff needed
-#context:
-#  initializer:
-#    classes: net.zevrant.services.security.common.secrets.management.services.EncryptedPropertyContextInitializer
+  encrypted:
+    properties: rds/backup/password
 
 management:
   endpoints:
@@ -56,6 +52,9 @@ management:
     ldap:
       enabled: false
 
+context:
+  initializer:
+    classes: net.zevrant.services.security.common.secrets.management.services.EncryptedPropertyContextInitializer
 
 logging:
   level:

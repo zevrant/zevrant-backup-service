@@ -48,7 +48,7 @@ spec:
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: oauth-db-password
+                  name: backup-db-password
                   key: password
             - name: PGDATA
               value: /storage/keys/db/$ENVIRONMENT/backup/
