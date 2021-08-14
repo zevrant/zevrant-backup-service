@@ -6,11 +6,13 @@ import com.zevrant.services.zevrantbackupservice.rest.CheckExistence;
 import com.zevrant.services.zevrantbackupservice.services.FileService;
 import com.zevrant.services.zevrantbackupservice.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
 @RestController
 @RequestMapping("/file-backup")
+@PreAuthorize("hasAnyAuthority('backups')")
 public class FileBackupController {
 
     private final FileService fileService;

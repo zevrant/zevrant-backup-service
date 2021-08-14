@@ -31,11 +31,14 @@ oauth2:
     alias: 1
 
 zevrant:
+  zevrant:
+    unsecured:
+      endpoints: /file-backup/check-existence
   backup:
     directory: /storage/backups/userdata
   services:
     proxy:
-      baseUrl: https://localhost:9009
+      baseUrl: https://localhost:9001
     clamAv:
       location: localhost
       port: 3310
@@ -64,4 +67,5 @@ context:
 logging:
   level:
     root: info
+    net.zevrant: debug
     com.zevrant.services: debug
