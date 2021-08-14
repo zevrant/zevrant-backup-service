@@ -6,7 +6,7 @@ import org.springframework.boot.web.servlet.ServletComponentScan;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 @ServletComponentScan
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = {"net.zevrant.services", "com.zevrant.services"})
 @EnableTransactionManagement
 public class ZevrantBackupServiceApplication {
 
