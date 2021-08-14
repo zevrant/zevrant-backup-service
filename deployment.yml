@@ -29,11 +29,19 @@ spec:
     spec:
       imagePullSecrets:
         - name: regcred
+      volumes:
+        - name: backup-service
+          nfs:
+            server: 192.168.1.11
+            path: /i-data/420aa917/nfs/backup-service
       nodeSelector:
         architecture: amd64
       containers:
         - name: zevrant-backup-service
           image: zevrant/zevrant-backup-service:$VERSION
+          volumeMounts:
+            - name: backup-service
+              mountPath: /storage/backups
           ports:
             - containerPort: 9009
           readinessProbe:
