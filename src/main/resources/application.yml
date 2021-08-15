@@ -31,9 +31,9 @@ oauth2:
     alias: 1
 
 zevrant:
-  zevrant:
-    unsecured:
-      endpoints: /file-backup/check-existence
+  s3:
+    apk:
+      bucketName: 'zevrant-apk-store'
   backup:
     directory: /storage/backups/userdata
   services:
@@ -55,7 +55,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus
+        include: health,info,prometheus,mappings
   health:
     ldap:
       enabled: false
