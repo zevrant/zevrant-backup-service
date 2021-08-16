@@ -51,6 +51,7 @@ public class UpdateService {
         VersionComparator versionComparator = new VersionComparator();
         logger.debug("looking for folder {}", folder);
         AmazonS3 s3 = AmazonS3ClientBuilder.standard().withRegion(Regions.US_EAST_1)
+                .withCredentials(new AWSStaticCredentialsProvider(sessionCredentialsProvider.assumeRole(Regions.US_EAST_1.name(), System.getenv("ROLE_ARN"))))
                 .build();
         List<String> versions = s3.listObjects(bucketName).getObjectSummaries()
                 .stream().filter(s3ObjectSummary -> s3ObjectSummary.getKey().contains(folder))
