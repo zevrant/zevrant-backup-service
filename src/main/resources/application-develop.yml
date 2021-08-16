@@ -25,7 +25,8 @@ zevrant:
   services:
     proxy:
       baseUrl: https://zevrant-oauth2-service
-
+  backup:
+    directory: /storage/backups/develop/userdata
 management:
   endpoints:
     web:

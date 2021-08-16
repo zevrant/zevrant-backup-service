@@ -41,7 +41,7 @@ spec:
           image: zevrant/zevrant-backup-service:$VERSION
           volumeMounts:
             - name: backup-service
-              mountPath: /storage/backups/$ENVIRONMENT
+              mountPath: /storage/backups/
           ports:
             - containerPort: 9009
           readinessProbe:

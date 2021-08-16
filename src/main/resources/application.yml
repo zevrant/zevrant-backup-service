@@ -35,7 +35,7 @@ zevrant:
     apk:
       bucketName: 'zevrant-apk-store'
   backup:
-    directory: /storage/backups/userdata
+    directory: /storage/backups/local/userdata
   services:
     proxy:
       baseUrl: https://localhost:9001
