@@ -21,7 +21,7 @@ RUN curl https://raw.githubusercontent.com/zevrant/zevrant-services-pipeline/mas
   && curl https://raw.githubusercontent.com/zevrant/zevrant-services-pipeline/master/bash/openssl.conf > ~/openssl.conf
 
 #TODO fix role
-CMD export ROLE_ARN="arn:aws:iam::725235728275:role/SecretsOnlyServiceRole" \
+CMD export ROLE_ARN="arn:aws:iam::725235728275:role/BackupServiceRole" \
  && password=`date +%s | sha256sum | base64 | head -c 32` \
  && bash ~/startup.sh zevrant-backup-service $password \
  && java -jar -Dspring.profiles.active=$ENVIRONMENT -Dpassword=$password /usr/local/microservices/zevrant-home-services/zevrant-backup-service/zevrant-backup-service.jar
