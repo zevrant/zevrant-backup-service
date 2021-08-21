@@ -1,7 +1,6 @@
 package com.zevrant.services.zevrantbackupservice.services;
 
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicSessionCredentials;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
@@ -70,12 +69,11 @@ public class UpdateService {
     }
 
     public S3ObjectInputStream getApk(String version) {
-        BasicSessionCredentials sessionCredentials = sessionCredentialsProvider.assumeRole(Regions.US_EAST_1.name(), System.getenv("ROLE_ARN"));
         AmazonS3 s3 = AmazonS3ClientBuilder.standard().withRegion(Regions.US_EAST_1)
-                .withCredentials(new AWSStaticCredentialsProvider(sessionCredentials))
+                .withCredentials(new AWSStaticCredentialsProvider(sessionCredentialsProvider.assumeRole(Regions.US_EAST_1.name(), System.getenv("ROLE_ARN"))))
                 .build();
         String key = this.folder.concat("/").concat(version).concat("/zevrant-services.apk");
-        logger.debug("requesting s3://{}{}", this.bucketName, key);
+        logger.debug("requesting s3://{}/{}", this.bucketName, key);
         S3Object apk = s3.getObject(this.bucketName, key);
         return apk.getObjectContent();
     }

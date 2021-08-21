@@ -6,9 +6,12 @@ import com.zevrant.services.zevrantbackupservice.rest.CheckExistence;
 import com.zevrant.services.zevrantbackupservice.services.FileService;
 import com.zevrant.services.zevrantbackupservice.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/file-backup")
@@ -44,5 +47,13 @@ public class FileBackupController {
         fileService.backupFile(userService.getUsername(authorization), request.getFileInfo(), request.getSerializedFileData());
         return new BackupFileResponse();
     }
+
+    @DeleteMapping
+    @Profile(value = {"local", "develop"})
+    public @ResponseBody
+    List<String> removeStorage(@RequestHeader("Authorization") String authorization) {
+        return fileService.removeStorageFor(userService.getUsername(authorization));
+    }
+
 
 }

@@ -7,6 +7,8 @@ spring:
     url: jdbc:postgresql://localhost:5428/backup?createDatabaseIfNotExist=true
     username: sa
     password: example
+    hikari:
+      connection-timeout: 999999999
   jpa:
     show-sql: false
     properties:
@@ -67,5 +69,6 @@ context:
 logging:
   level:
     root: info
+    net.zevrant-services: debug
     net.zevrant: debug
     com.zevrant.services: debug

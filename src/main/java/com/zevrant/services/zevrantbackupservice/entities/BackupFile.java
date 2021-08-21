@@ -7,7 +7,7 @@ import javax.persistence.Table;
 
 @Entity
 @Table(name = "FILE")
-public class File {
+public class BackupFile {
 
     @Id
     @Column(name = "ID")
@@ -19,7 +19,7 @@ public class File {
     @Column(name = "uploaded_by", nullable = false)
     private String uploadedBy;
 
-    public File() {
+    public BackupFile() {
     }
 
     public String getId() {
