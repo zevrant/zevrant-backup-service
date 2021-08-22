@@ -9,6 +9,7 @@ import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.zevrant.services.zevrantbackupservice.comparators.VersionComparator;
 import com.zevrant.services.zevrantbackupservice.rest.UpdateCheckResponse;
 import net.zevrant.services.security.common.secrets.management.services.AwsSessionCredentialsProvider;
+import org.apache.commons.lang3.ObjectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,7 +55,12 @@ public class UpdateService {
                 .build();
         List<String> versions = s3.listObjects(bucketName).getObjectSummaries()
                 .stream().filter(s3ObjectSummary -> s3ObjectSummary.getKey().contains(folder))
-                .map(s3ObjectSummary -> s3ObjectSummary.getKey().split("/")[1])
+                .map(s3ObjectSummary -> {
+                    if (s3ObjectSummary.getKey().split("/").length > 1) {
+                        return s3ObjectSummary.getKey().split("/")[1];
+                    }
+                    return null;
+                }).filter(ObjectUtils::allNotNull)
                 .sorted(versionComparator)
                 .collect(Collectors.toList());
 
