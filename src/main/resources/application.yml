@@ -3,6 +3,7 @@ spring:
     allow-bean-definition-overriding: true
   profiles:
     active: local
+    include: liquibase
   datasource:
     url: jdbc:postgresql://localhost:5428/backup?createDatabaseIfNotExist=true
     username: sa
