@@ -1,16 +1,18 @@
 package com.zevrant.services.zevrantbackupservice.controllers;
 
+import com.zevrant.services.zevrantbackupservice.exceptions.MethodNotAllowedException;
 import com.zevrant.services.zevrantbackupservice.rest.BackupFileRequest;
 import com.zevrant.services.zevrantbackupservice.rest.BackupFileResponse;
 import com.zevrant.services.zevrantbackupservice.rest.CheckExistence;
 import com.zevrant.services.zevrantbackupservice.services.FileService;
 import com.zevrant.services.zevrantbackupservice.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Profile;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.Arrays;
 import java.util.List;
 
 @RestController
@@ -21,12 +23,15 @@ public class FileBackupController {
     private final FileService fileService;
     private final RestTemplate restTemplate;
     private final UserService userService;
+    private final List<String> activeProfiles;
 
     @Autowired
-    public FileBackupController(FileService fileService, RestTemplate restTemplate, UserService userService) {
+    public FileBackupController(FileService fileService, RestTemplate restTemplate, UserService userService,
+                                @Value("${spring.profiles.active}") String activeProfiles) {
         this.fileService = fileService;
         this.restTemplate = restTemplate;
         this.userService = userService;
+        this.activeProfiles = Arrays.asList(activeProfiles.split(","));
     }
 
     /**
@@ -49,11 +54,12 @@ public class FileBackupController {
     }
 
     @DeleteMapping
-    @Profile(value = {"local", "develop"})
     public @ResponseBody
     List<String> removeStorage(@RequestHeader("Authorization") String authorization) {
-        return fileService.removeStorageFor(userService.getUsername(authorization));
+        if (activeProfiles.contains("local") || activeProfiles.contains("develop")) {
+            return fileService.removeStorageFor(userService.getUsername(authorization));
+        } else {
+            throw new MethodNotAllowedException();
+        }
     }
-
-
 }

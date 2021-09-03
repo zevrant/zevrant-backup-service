@@ -130,7 +130,7 @@ public class FileService {
         String hash = StringUtilities.getChecksum(digest, is);
         Optional<BackupFile> file = fileRepository.findById(hash);
         fileRepository.delete(file.orElseThrow(() -> {
-            logger.error("Failed to find file with hash {} havinf filename {} and imageTypeDir {}", hash, backedUpFileName, imageTypeDir.getName());
+            logger.error("Failed to find file with hash {} having filename {} and imageTypeDir {}", hash, backedUpFileName, imageTypeDir.getName());
             return new BackupFileNotFoundException("Failed to find file with hash ".concat(hash));
         }));
         return hash;
