@@ -13,4 +13,6 @@ public interface FileRepository extends JpaRepository<BackupFile, String> {
 
     @Query("select file from BackupFile file where file.id in :hashes and file.uploadedBy = :user")
     List<BackupFile> findHashesByUser(@Param("hashes") List<String> hashes, @Param("user") String user);
+
+    List<BackupFile> deleteBackupFileByUploadedBy(String uploadedBy);
 }

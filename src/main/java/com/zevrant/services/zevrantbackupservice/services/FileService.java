@@ -3,8 +3,6 @@ package com.zevrant.services.zevrantbackupservice.services;
 import com.zevrant.services.zevrantbackupservice.entities.BackupFile;
 import com.zevrant.services.zevrantbackupservice.exceptions.BackupFileNotFoundException;
 import com.zevrant.services.zevrantbackupservice.exceptions.FailedToBackupFileException;
-import com.zevrant.services.zevrantbackupservice.exceptions.FailedToDeleteBackupFileException;
-import com.zevrant.services.zevrantbackupservice.exceptions.FailedToProcessFileException;
 import com.zevrant.services.zevrantbackupservice.repositories.FileRepository;
 import com.zevrant.services.zevrantbackupservice.rest.FileInfo;
 import net.zevrant.services.security.common.secrets.management.utilities.StringUtilities;
@@ -15,12 +13,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.util.FileSystemUtils;
 
 import javax.transaction.Transactional;
 import java.io.*;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -84,7 +83,7 @@ public class FileService {
             do {
                 file = new File(filePath.concat(" (".concat(String.valueOf(i).concat(")"))));
                 i++;
-            } while (!file.exists());
+            } while (file.exists());
 
         }
         if (!file.createNewFile()) {
@@ -96,31 +95,17 @@ public class FileService {
         return file.getAbsolutePath();
     }
 
+    @Transactional
     public List<String> removeStorageFor(String username) {
         String directory = backupDirectory.concat("/").concat(username).concat("/");
         logger.info("Listing files in the directory {}", directory);
         File storageDir = new File(directory);
-        String[] folders = storageDir.list();
-        logger.info("{}", (Object) folders);
-        List<String> deletedDigests = new ArrayList<>();
-        for (String folder : folders) {
-            File imageTypeDir = new File(storageDir.getAbsolutePath().concat("/").concat(folder));
-            assert imageTypeDir.isDirectory();
-            String[] backedUpFiles = imageTypeDir.list();
-            for (String backedUpFileName : backedUpFiles) {
-                try {
-                    deletedDigests.add(deleteBackupFile(backedUpFileName, imageTypeDir));
-                    logger.info("deleted {}", backedUpFileName);
-                } catch (FileNotFoundException e) {
-                    logger.error("Failed to find backup file backup {}", imageTypeDir.getAbsolutePath().concat("/").concat(backedUpFileName));
-                    throw new FailedToDeleteBackupFileException("Failed to find backup file backup ".concat(imageTypeDir.getAbsolutePath().concat("/").concat(backedUpFileName)));
-                } catch (IOException e) {
-                    logger.error("Failed to process files in storage");
-                    throw new FailedToProcessFileException("Failed to process files in storage");
-                }
-            }
+        List<BackupFile> deletedFiles = fileRepository.deleteBackupFileByUploadedBy(username);
+        if (!storageDir.exists() || !FileSystemUtils.deleteRecursively(storageDir)) {
+            logger.info("No files found for user {}", username);
+            return Collections.emptyList();
         }
-        return deletedDigests;
+        return deletedFiles.stream().map(BackupFile::getId).collect(Collectors.toList());
     }
 
     @Transactional(rollbackOn = IOException.class)
