@@ -62,4 +62,10 @@ public class FileBackupController {
             throw new MethodNotAllowedException();
         }
     }
+
+    @GetMapping
+    public @ResponseBody
+    List<String> getHashesForBackupFiles(@RequestHeader("Authorization") String authorization) {
+        return fileService.getHashesFor(userService.getUsername(authorization));
+    }
 }

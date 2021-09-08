@@ -122,4 +122,10 @@ public class FileService {
     }
 
 
+    public List<String> getHashesFor(String username) {
+        return fileRepository.findAllByUploadedBy(username)
+                .stream()
+                .map(BackupFile::getId)
+                .collect(Collectors.toList());
+    }
 }
