@@ -13,7 +13,7 @@ RUN chown -R zevrant-backup-service:developers /var/log/zevrant-home-services/ze
 
 USER zevrant-backup-service
 
-COPY zevrant-backup-service.jar /usr/local/microservices/zevrant-home-services/zevrant-backup-service/zevrant-backup-service.jar
+COPY build/libs/zevrant-backup-service-0.0.1-SNAPSHOT.jar /usr/local/microservices/zevrant-home-services/zevrant-backup-service/zevrant-backup-service.jar
 
 RUN mkdir ~/.aws; echo "[default]" > ~/.aws/config; echo "region = us-east-1" >> ~/.aws/config; echo "output = json" >> ~/.aws/config
 
