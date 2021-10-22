@@ -1,4 +1,4 @@
-FROM zevrant/zevrant-ubuntu-base:latest
+FROM docker.io/zevrant/zevrant-ubuntu-base:latest
 
 EXPOSE 9009
 
@@ -20,7 +20,6 @@ RUN mkdir ~/.aws; echo "[default]" > ~/.aws/config; echo "region = us-east-1" >>
 RUN curl https://raw.githubusercontent.com/zevrant/zevrant-services-pipeline/master/bash/zevrant-services-start.sh > ~/startup.sh \
   && curl https://raw.githubusercontent.com/zevrant/zevrant-services-pipeline/master/bash/openssl.conf > ~/openssl.conf
 
-#TODO fix role
 CMD export ROLE_ARN="arn:aws:iam::725235728275:role/BackupServiceRole" \
  && password=`date +%s | sha256sum | base64 | head -c 32` \
  && bash ~/startup.sh zevrant-backup-service $password \
