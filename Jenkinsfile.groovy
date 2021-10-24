@@ -3,7 +3,9 @@ String branchName = (BRANCH_NAME.startsWith('PR-')) ? CHANGE_BRANCH : BRANCH_NAM
 
 pipeline {
     agent {
-        label 'master'
+        kubernetes {
+            inheritFrom 'jnlp'
+        }
     }
     stages {
         stage('Launch Build') {
