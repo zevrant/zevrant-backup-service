@@ -11,10 +11,13 @@ pipeline {
         stage('Launch Build') {
             steps {
                 script {
-                    String[] appPieces = REPOSITORY.split('-')
+                    String[] jobNamePieces = JOB_NAME.split('/')
+                    String[] appPieces = jobNamePieces[1]
+                    String applicationType = appPieces[0]
                     String folderName = "${appPieces[0].capitalize()} ${appPieces[1].capitalize()} ${appPieces[2].capitalize()}"
+                    String repository = folderName.replace(" ", "-").toLowerCase()
                     build(
-                            job: "${APPLICATION_TYPE}/${folderName}/$REPOSITORY",
+                            job: "${applicationType}/${folderName}/$repository",
                             propagate: true,
                             wait: true,
                             parameters: [
