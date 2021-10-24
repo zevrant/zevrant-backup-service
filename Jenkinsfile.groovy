@@ -15,7 +15,7 @@ pipeline {
                     echo "$jobNamePieces"
                     String[] appPieces = jobNamePieces[1].split(" ")
                     echo "$appPieces"
-                    String applicationType = appPieces[0]
+                    String applicationType = jobNamePieces[0]
                     String folderName = "${appPieces[0].capitalize()} ${appPieces[1].capitalize()} ${appPieces[2].capitalize()}"
                     String repository = folderName.replace(" ", "-").toLowerCase()
                     build(
