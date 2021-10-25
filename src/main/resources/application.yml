@@ -69,7 +69,9 @@ context:
 
 logging:
   level:
-    root: info
     net.zevrant-services: debug
     net.zevrant: debug
     com.zevrant.services: debug
+    net.zevrant.services.security.common: debug
+    net.zevrant.services.security.common.secrets.management.config: debug
+    root: info

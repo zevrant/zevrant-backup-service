@@ -12,9 +12,7 @@ pipeline {
             steps {
                 script {
                     String[] jobNamePieces = JOB_NAME.split('/')
-                    echo "$jobNamePieces"
                     String[] appPieces = jobNamePieces[1].split(" ")
-                    echo "$appPieces"
                     String applicationType = jobNamePieces[0]
                     String folderName = "${appPieces[0].capitalize()} ${appPieces[1].capitalize()} ${appPieces[2].capitalize()}"
                     String repository = folderName.replace(" ", "-").toLowerCase()

@@ -1,5 +1,5 @@
 plugins {
-    id 'org.springframework.boot' version '2.5.3'
+    id 'org.springframework.boot' version '2.5.5'
     id 'io.spring.dependency-management' version '1.0.11.RELEASE'
     id 'org.liquibase.gradle' version '2.0.1'
     id 'java'
@@ -22,19 +22,19 @@ repositories {
 
 dependencies {
 
-    implementation 'net.zevrant-services:zevrant-security-common:1.1.19'
+    implementation 'net.zevrant-services:zevrant-security-common:3.0.3'
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'fi.solita.clamav:clamav-client:1.0.1'
-    implementation 'io.micrometer:micrometer-registry-prometheus:1.7.2'
+    implementation 'io.micrometer:micrometer-registry-prometheus:1.7.4'
     implementation 'org.apache.commons:commons-lang3:3.12.0'
     implementation 'org.postgresql:postgresql'
-    implementation 'com.amazonaws:aws-java-sdk-s3:1.11.1024'
+    implementation 'com.amazonaws:aws-java-sdk-s3:1.12.85'
 
-    liquibaseRuntime 'org.liquibase:liquibase-groovy-dsl:2.0.1'
+    liquibaseRuntime 'org.liquibase:liquibase-groovy-dsl:3.0.2'
     testImplementation('org.springframework.boot:spring-boot-starter-test') {
         exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
     }
