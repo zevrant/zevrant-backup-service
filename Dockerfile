@@ -23,4 +23,4 @@ RUN curl https://raw.githubusercontent.com/zevrant/zevrant-services-pipeline/mas
 CMD export ROLE_ARN="arn:aws:iam::725235728275:role/BackupServiceRole" \
  && password=`date +%s | sha256sum | base64 | head -c 32` \
  && bash ~/startup.sh zevrant-backup-service $password \
- && java -jar -Dspring.profiles.active=$ENVIRONMENT -Dpassword=$password /usr/local/microservices/zevrant-home-services/zevrant-backup-service/zevrant-backup-service.jar
+ && java -jar -Dspring.profiles.active=$ENVIRONMENT,liquibase -Dpassword=$password /usr/local/microservices/zevrant-home-services/zevrant-backup-service/zevrant-backup-service.jar

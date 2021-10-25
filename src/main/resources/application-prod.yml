@@ -11,8 +11,6 @@ server:
     key-store-password: ${password}
 
 spring:
-  profiles:
-    include: liquibase
   datasource:
     url: 'jdbc:postgresql://zevrant-backup-service-db:5432/backup'
     username: 'zevrant'
