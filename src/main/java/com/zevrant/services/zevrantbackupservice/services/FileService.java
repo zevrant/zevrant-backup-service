@@ -3,10 +3,13 @@ package com.zevrant.services.zevrantbackupservice.services;
 import com.zevrant.services.zevrantbackupservice.entities.BackupFile;
 import com.zevrant.services.zevrantbackupservice.exceptions.BackupFileNotFoundException;
 import com.zevrant.services.zevrantbackupservice.exceptions.FailedToBackupFileException;
+import com.zevrant.services.zevrantbackupservice.exceptions.FailedToDeleteBackupFileException;
+import com.zevrant.services.zevrantbackupservice.exceptions.InvalidFormatException;
 import com.zevrant.services.zevrantbackupservice.repositories.FileRepository;
 import com.zevrant.services.zevrantbackupservice.rest.FileInfo;
-import net.zevrant.services.security.common.secrets.management.utilities.StringUtilities;
+import com.zevrant.services.zevrantsecuritycommon.utilities.StringUtilities;
 import org.apache.commons.codec.digest.MessageDigestAlgorithms;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -121,6 +124,18 @@ public class FileService {
         return hash;
     }
 
+    public File getImageTypeDir(String imageType, String username) {
+        //TODO add validation
+        if (StringUtils.isNotBlank(imageType)
+                && imageType.contains("..")) {
+            throw new InvalidFormatException("Invalid format detected");
+        }
+        File imageTypeDir = new File(backupDirectory.concat("/").concat(username).concat("/").concat(imageType));
+        if (imageTypeDir.exists()) {
+            return imageTypeDir;
+        }
+        throw new FailedToDeleteBackupFileException("Data Not Found");
+    }
 
     public List<String> getHashesFor(String username) {
         return fileRepository.findAllByUploadedBy(username)
