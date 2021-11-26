@@ -60,13 +60,13 @@ spec:
             - name: AWS_ACCESS_KEY_ID
               valueFrom:
                 secretKeyRef:
-                  name: zevrant-notification-service-aws
+                  name: zevrant-backup-service-aws
                   key: username
-                - name: AWS_SECRET_ACCESS_KEY
-                  valueFrom:
-                    secretKeyRef:
-                      name: zevrant-notification-service-aws
-                      key: password
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: zevrant-backup-service-aws
+                  key: password
             - name: ENVIRONMENT
               value: $ENVIRONMENT
             - name: POD_IP
