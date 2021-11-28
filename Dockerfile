@@ -20,7 +20,6 @@ RUN mkdir ~/.aws; echo "[default]" > ~/.aws/config; echo "region = us-east-1" >>
 RUN curl https://raw.githubusercontent.com/zevrant/zevrant-services-pipeline/master/bash/zevrant-services-start.sh > ~/startup.sh \
   && curl https://raw.githubusercontent.com/zevrant/zevrant-services-pipeline/master/bash/openssl.conf > ~/openssl.conf
 
-CMD export ROLE_ARN="arn:aws:iam::725235728275:role/BackupServiceRole" \
- && password=`date +%s | sha256sum | base64 | head -c 32` \
+CMD password=`date +%s | sha256sum | base64 | head -c 32` \
  && bash ~/startup.sh zevrant-backup-service $password \
- && java -jar -Dspring.profiles.active=$ENVIRONMENT,liquibase -Dpassword=$password /usr/local/microservices/zevrant-home-services/zevrant-backup-service/zevrant-backup-service.jar
+ && java -jar -jar -XX:MinRAMPercentage=25 -XX:MaxRAMPercentage=90 -Dspring.profiles.active=$ENVIRONMENT,liquibase -Dpassword=$password /usr/local/microservices/zevrant-home-services/zevrant-backup-service/zevrant-backup-service.jar
