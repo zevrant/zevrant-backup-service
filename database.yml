@@ -15,8 +15,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: zevrant-backup-service-db-deployment
-  annotations:
-    iam.amazonaws.com/role: OauthServiceRole
   labels:
     app: zevrant-backup-service-db
 spec:

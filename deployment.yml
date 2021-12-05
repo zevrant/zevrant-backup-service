@@ -27,6 +27,10 @@ spec:
       labels:
         app: zevrant-backup-service
     spec:
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
       imagePullSecrets:
         - name: regcred
       volumes:
@@ -51,6 +55,9 @@ spec:
               port: 9009
             initialDelaySeconds: 60
           livenessProbe:
+            exec:
+              command:
+                -
             httpGet:
               scheme: HTTPS
               path: /zevrant-backup-service/actuator/health
