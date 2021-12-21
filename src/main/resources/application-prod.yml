@@ -19,7 +19,7 @@ spring:
       client:
         provider:
           keycloak:
-            issuer-uri: https://zevrant-keycloak-service/auth/realms/zevrant-services
+            issuer-uri: https://zevrant-services.com/auth/realms/zevrant-services
 
 zevrant:
   services:
