@@ -55,9 +55,6 @@ spec:
               port: 9009
             initialDelaySeconds: 60
           livenessProbe:
-            exec:
-              command:
-                -
             httpGet:
               scheme: HTTPS
               path: /zevrant-backup-service/actuator/health
