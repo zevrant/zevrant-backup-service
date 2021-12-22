@@ -22,7 +22,7 @@ repositories {
 
 dependencies {
 
-    implementation 'com.zevrant.services:zevrant-security-common:5'
+    implementation 'com.zevrant.services:zevrant-security-common:6'
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
@@ -32,7 +32,6 @@ dependencies {
     implementation 'io.micrometer:micrometer-registry-prometheus:1.8.0'
     implementation 'org.apache.commons:commons-lang3:3.12.0'
     implementation 'org.postgresql:postgresql'
-    implementation 'com.amazonaws:aws-java-sdk-s3:1.12.111'
 
     liquibaseRuntime 'org.liquibase:liquibase-groovy-dsl:3.0.2'
     testImplementation('org.springframework.boot:spring-boot-starter-test') {

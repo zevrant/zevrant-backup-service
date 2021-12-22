@@ -1,7 +1,6 @@
 package com.zevrant.services.zevrantbackupservice.controllers;
 
 import com.zevrant.services.zevrantbackupservice.exceptions.BackupFileNotFoundException;
-import com.zevrant.services.zevrantbackupservice.exceptions.MethodNotAllowedException;
 import com.zevrant.services.zevrantbackupservice.rest.BackupFileRequest;
 import com.zevrant.services.zevrantbackupservice.rest.BackupFileResponse;
 import com.zevrant.services.zevrantbackupservice.rest.CheckExistence;
@@ -13,15 +12,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/file-backup")
@@ -52,7 +54,7 @@ public class FileBackupController {
         return ReactiveSecurityContextHolder.getContext()
                 .map(securityContext -> new CheckExistence(
                         fileService.filterExisting(checkExistence.getFileInfos(),
-                                securityContext.getAuthentication().getPrincipal().toString())));
+                                getUsername(securityContext))));
     }
 
     @ResponseBody
@@ -61,7 +63,11 @@ public class FileBackupController {
     public Mono<BackupFileResponse> backupFile(@RequestBody BackupFileRequest request) {
         return ReactiveSecurityContextHolder.getContext()
                 .map(securityContext -> {
-                    fileService.backupFile(securityContext.getAuthentication().getPrincipal().toString(), request.getFileInfo(), request.getSerializedFileData());
+                    fileService.backupFile(
+                            getUsername(securityContext),
+                            request.getFileInfo(),
+                            request.getSerializedFileData());
+
                     return new BackupFileResponse();
                 });
 
@@ -71,12 +77,16 @@ public class FileBackupController {
     @DeleteMapping
     @PreAuthorize("hasAuthority('backups')")
     public @ResponseBody
-    Mono<List<String>> removeStorage(@RequestBody(required = false) Optional<CheckExistence> request) {
-        return request.map(checkExistence -> ReactiveSecurityContextHolder.getContext()
+    Mono<List<String>> removeStorage(@RequestBody(required = false) CheckExistence request) {
+        return ReactiveSecurityContextHolder.getContext()
+                .publishOn(Schedulers.boundedElastic())
                 .map(securityContext -> {
-                    String username = securityContext.getAuthentication().getPrincipal().toString();
+                    String username = getUsername(securityContext);
                     List<String> deleted = new ArrayList<>();
-                    fileService.filterExisting(checkExistence.getFileInfos(), username)
+                    if (activeProfiles.contains("local") || activeProfiles.contains("develop") && request == null) {
+                        return fileService.removeStorageFor(username);
+                    }
+                    fileService.filterExisting((request != null) ? request.getFileInfos() : Collections.emptyList(), username)
                             .forEach(fileInfo -> {
                                 String fileHash = "";
                                 try {
@@ -92,14 +102,7 @@ public class FileBackupController {
                                 }
                             });
                     return deleted;
-                })).orElseGet(() -> ReactiveSecurityContextHolder.getContext()
-                .map(securityContext -> {
-                    if (activeProfiles.contains("local") || activeProfiles.contains("develop")) {
-                        return fileService.removeStorageFor(securityContext.getAuthentication().getPrincipal().toString());
-                    } else {
-                        throw new MethodNotAllowedException();
-                    }
-                }));
+                });
     }
 
     @GetMapping
@@ -107,6 +110,11 @@ public class FileBackupController {
     public @ResponseBody
     Mono<List<String>> getHashesForBackupFiles() {
         return ReactiveSecurityContextHolder.getContext()
-                .map(securityContext -> fileService.getHashesFor(securityContext.getAuthentication().getPrincipal().toString()));
+                .map(securityContext -> fileService.getHashesFor(getUsername(securityContext)));
+    }
+
+    private String getUsername(SecurityContext securityContext) {
+        return ((Jwt) securityContext.getAuthentication().getPrincipal())
+                .getClaim("preferred_username");
     }
 }

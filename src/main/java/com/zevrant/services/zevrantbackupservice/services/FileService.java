@@ -8,7 +8,6 @@ import com.zevrant.services.zevrantbackupservice.exceptions.InvalidFormatExcepti
 import com.zevrant.services.zevrantbackupservice.repositories.FileRepository;
 import com.zevrant.services.zevrantbackupservice.rest.FileInfo;
 import com.zevrant.services.zevrantsecuritycommon.utilities.StringUtilities;
-import org.apache.commons.codec.digest.MessageDigestAlgorithms;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
@@ -42,7 +41,7 @@ public class FileService {
                        @Value("${zevrant.backup.directory}") String backupDirectory) throws NoSuchAlgorithmException {
         this.fileRepository = fileRepository;
         this.backupDirectory = backupDirectory;
-        digest = MessageDigest.getInstance(MessageDigestAlgorithms.SHA_512);
+        digest = MessageDigest.getInstance("SHA-512");
     }
 
     public List<FileInfo> filterExisting(List<FileInfo> fileInfos, String user) {
