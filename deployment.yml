@@ -18,7 +18,7 @@ metadata:
   labels:
     app: zevrant-backup-service
 spec:
-  replicas: 2
+  replicas: $REPLICAS
   selector:
     matchLabels:
       app: zevrant-backup-service
