@@ -1,10 +1,7 @@
 package com.zevrant.services.zevrantbackupservice.services;
 
 import com.zevrant.services.zevrantbackupservice.entities.BackupFile;
-import com.zevrant.services.zevrantbackupservice.exceptions.BackupFileNotFoundException;
-import com.zevrant.services.zevrantbackupservice.exceptions.FailedToBackupFileException;
-import com.zevrant.services.zevrantbackupservice.exceptions.FailedToDeleteBackupFileException;
-import com.zevrant.services.zevrantbackupservice.exceptions.InvalidFormatException;
+import com.zevrant.services.zevrantbackupservice.exceptions.*;
 import com.zevrant.services.zevrantbackupservice.repositories.FileRepository;
 import com.zevrant.services.zevrantbackupservice.rest.FileInfo;
 import com.zevrant.services.zevrantsecuritycommon.utilities.StringUtilities;
@@ -21,7 +18,6 @@ import javax.transaction.Transactional;
 import java.io.*;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -103,9 +99,9 @@ public class FileService {
         logger.info("Listing files in the directory {}", directory);
         File storageDir = new File(directory);
         List<BackupFile> deletedFiles = fileRepository.deleteBackupFileByUploadedBy(username);
-        if (!storageDir.exists() || !FileSystemUtils.deleteRecursively(storageDir)) {
+        if (deletedFiles.isEmpty() || !storageDir.exists() || !FileSystemUtils.deleteRecursively(storageDir)) {
             logger.info("No files found for user {}", username);
-            return Collections.emptyList();
+            throw new FilesNotFoundException();
         }
         return deletedFiles.stream().map(BackupFile::getId).collect(Collectors.toList());
     }
