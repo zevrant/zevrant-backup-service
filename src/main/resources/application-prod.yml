@@ -21,14 +21,10 @@ spring:
           keycloak:
             issuer-uri: https://zevrant-services.com/auth/realms/zevrant-services
 
-zevrant:
-  services:
-    oauth2:
-      baseUrl: https://zevrant-oauth2-service
-
 logging:
   level:
-    root: INFO
+    com.zevrant.services: info
+    root: info
 
 management:
   endpoints:

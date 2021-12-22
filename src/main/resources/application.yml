@@ -52,7 +52,7 @@ oauth2:
 
 zevrant:
   backup:
-    directory: /storage/backups/local/userdata
+    directory: /storage/backups/userdata
   unsecured:
     endpoints: /actuator/health,/actuator/info/,/actuator/prometheus
   services:
@@ -83,6 +83,5 @@ context:
 
 logging:
   level:
-    net.zevrant-services: debug
     com.zevrant.services: debug
     root: info

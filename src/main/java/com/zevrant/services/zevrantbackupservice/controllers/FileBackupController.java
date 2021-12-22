@@ -62,6 +62,7 @@ public class FileBackupController {
     @PreAuthorize("hasAuthority('backups')")
     public Mono<BackupFileResponse> backupFile(@RequestBody BackupFileRequest request) {
         return ReactiveSecurityContextHolder.getContext()
+                .publishOn(Schedulers.boundedElastic())
                 .map(securityContext -> {
                     fileService.backupFile(
                             getUsername(securityContext),

@@ -37,7 +37,7 @@ spec:
         - name: backup-service
           nfs:
             server: 192.168.1.11
-            path: /i-data/420aa917/nfs/backup-service
+            path: /i-data/420aa917/nfs/backup-service-$ENVIRONMENT
       nodeSelector:
         architecture: amd64
       containers:

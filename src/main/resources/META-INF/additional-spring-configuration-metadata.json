@@ -4,6 +4,11 @@
       "name": "zevrant.bucketName.ssl.key-store",
       "type": "java.lang.String",
       "description": "Description for zevrant.bucketName.ssl.key-store."
+    },
+    {
+      "name": "zevrant.backup.directory",
+      "type": "java.lang.String",
+      "description": "Description for zevrant.backup.directory."
     }
   ]
 }
