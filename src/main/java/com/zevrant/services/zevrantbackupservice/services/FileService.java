@@ -99,8 +99,9 @@ public class FileService {
         logger.info("Listing files in the directory {}", directory);
         File storageDir = new File(directory);
         List<BackupFile> deletedFiles = fileRepository.deleteBackupFileByUploadedBy(username);
-        if (deletedFiles.isEmpty() || !storageDir.exists() || !FileSystemUtils.deleteRecursively(storageDir)) {
-            logger.info("No files found for user {}", username);
+        boolean fileSystem = !storageDir.exists() || !FileSystemUtils.deleteRecursively(storageDir);
+        if (deletedFiles.isEmpty() || fileSystem) {
+            logger.info("No file found for {} in file system {}, database {}", username, fileSystem, deletedFiles.isEmpty());
             throw new FilesNotFoundException();
         }
         return deletedFiles.stream().map(BackupFile::getId).collect(Collectors.toList());
