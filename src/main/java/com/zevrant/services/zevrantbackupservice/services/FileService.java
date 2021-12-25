@@ -130,7 +130,8 @@ public class FileService {
         logger.info("Listing files in the directory {}", directory);
         File storageDir = new File(directory);
         List<BackupFile> deletedFiles = fileRepository.deleteBackupFileByUploadedBy(username);
-        boolean fileSystem = !storageDir.exists() || !deleteRecursively(storageDir.getAbsolutePath());
+        boolean fileSystem = !storageDir.exists()
+                || !deleteRecursively(storageDir.getAbsolutePath(), storageDir.getAbsolutePath(), username);
         if (deletedFiles.isEmpty() || fileSystem) {
             logger.info("No file found for {} in file system {}, database {}",
                     username, fileSystem, deletedFiles.isEmpty());
@@ -139,7 +140,7 @@ public class FileService {
         return deletedFiles.stream().map(BackupFile::getId).collect(Collectors.toList());
     }
 
-    private boolean deleteRecursively(String path) {
+    private boolean deleteRecursively(String basePath, String path, String username) {
         File file = new File(path);
         final boolean[] deleted = new boolean[]{file.exists()};
         if (deleted[0]) {
@@ -147,13 +148,16 @@ public class FileService {
                 File[] files = file.listFiles();
                 Arrays.stream((files == null) ? Collections.emptyList().toArray() : files)
                         .forEach(listedFile -> {
-                            boolean isDeleted = deleteRecursively(((File) listedFile).getAbsolutePath());
-                            logger.debug("file {} deleted? {}", file.getAbsoluteFile(), isDeleted);
-                            deleted[0] = deleted[0] && isDeleted;
+                            if (!((File) listedFile).getAbsolutePath().equals(file.getAbsolutePath())) {
+                                deleted[0] = deleted[0] && deleteRecursively(basePath, ((File) listedFile).getAbsolutePath(), username);
+                            }
                         });
             }
-
-            deleted[0] = file.delete() && deleted[0];
+            if (!basePath.equals(path)) {
+                boolean isDeleted = file.delete();
+                logger.debug("file {} deleted? {}", file.getAbsoluteFile(), isDeleted);
+                deleted[0] = isDeleted && deleted[0];
+            }
         }
 
         return deleted[0];
