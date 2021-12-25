@@ -24,4 +24,5 @@ spring:
 logging:
   level:
     com.zevrant.services: info
+    com.zevrant.services.zevrantbackupservice.services: debug
     root: info

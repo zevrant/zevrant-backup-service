@@ -100,14 +100,13 @@ public class FileService {
         if (!file.createNewFile()) {
             throw new RuntimeException(("Failed to create new File"));
         }
-        final File finalFile = file;
-        BufferedWriter writer = new BufferedWriter(new FileWriter(finalFile));
+        BufferedWriter writer = new BufferedWriter(new FileWriter(file));
         writer.write(serializedFileData);
         writer.flush();
         final CompletableFuture<Boolean> isCompelte = new CompletableFuture<>();
-
         taskExecutor.execute(() -> {
             LocalDateTime future = LocalDateTime.now().plusMinutes(maxWaitTime);
+            File finalFile = new File(filePath);
             boolean incorrectFileSize = finalFile.length() != serializedFileData.getBytes(StandardCharsets.UTF_8).length;
             boolean hasTimeoutOccured = LocalDateTime.now().isBefore(future);
             while (incorrectFileSize && hasTimeoutOccured) {
@@ -141,14 +140,19 @@ public class FileService {
     }
 
     private boolean deleteRecursively(String path) {
-        final boolean[] deleted = new boolean[]{true};
         File file = new File(path);
-        if (file.exists()) {
+        final boolean[] deleted = new boolean[]{file.exists()};
+        if (deleted[0]) {
             if (file.isDirectory()) {
                 File[] files = file.listFiles();
                 Arrays.stream((files == null) ? Collections.emptyList().toArray() : files)
-                        .forEach(listedFile -> deleted[0] = deleted[0] && deleteRecursively(((File) listedFile).getAbsolutePath()));
+                        .forEach(listedFile -> {
+                            boolean isDeleted = deleteRecursively(((File) listedFile).getAbsolutePath());
+                            logger.debug("file {} deleted? {}", file.getAbsoluteFile(), isDeleted);
+                            deleted[0] = deleted[0] && isDeleted;
+                        });
             }
+
             deleted[0] = file.delete() && deleted[0];
         }
 
