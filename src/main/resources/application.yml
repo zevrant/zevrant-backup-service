@@ -52,6 +52,8 @@ oauth2:
 
 zevrant:
   backup:
+    io:
+      maxWaitTime: 5
     directory: /storage/backups/userdata
   unsecured:
     endpoints: /actuator/health,/actuator/info/,/actuator/prometheus

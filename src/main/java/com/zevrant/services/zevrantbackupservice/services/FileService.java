@@ -11,16 +11,23 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,14 +37,19 @@ public class FileService {
     private final MessageDigest digest;
     private static final Logger logger = LoggerFactory.getLogger(FileService.class);
     private final String backupDirectory;
-
+    private final ThreadPoolTaskExecutor taskExecutor;
     private final FileRepository fileRepository;
+    private final int maxWaitTime;
 
     @Autowired
     public FileService(FileRepository fileRepository,
-                       @Value("${zevrant.backup.directory}") String backupDirectory) throws NoSuchAlgorithmException {
+                       ThreadPoolTaskExecutor taskExecutor,
+                       @Value("${zevrant.backup.directory}") String backupDirectory,
+                       @Value("${zevrant.backup.io.maxWaitTime}") int maxWaitTime) throws NoSuchAlgorithmException {
         this.fileRepository = fileRepository;
+        this.taskExecutor = taskExecutor;
         this.backupDirectory = backupDirectory;
+        this.maxWaitTime = maxWaitTime;
         digest = MessageDigest.getInstance("SHA-512");
     }
 
@@ -75,7 +87,7 @@ public class FileService {
         }
     }
 
-    private String writeFileToDisk(String filePath, String serializedFileData) throws IOException {
+    private String writeFileToDisk(String filePath, String serializedFileData) throws IOException, ExecutionException, InterruptedException, TimeoutException {
         File file = new File(filePath);
         if (file.exists()) {
             int i = 0;
@@ -88,9 +100,28 @@ public class FileService {
         if (!file.createNewFile()) {
             throw new RuntimeException(("Failed to create new File"));
         }
-        BufferedWriter writer = new BufferedWriter(new FileWriter(file));
+        final File finalFile = file;
+        BufferedWriter writer = new BufferedWriter(new FileWriter(finalFile));
         writer.write(serializedFileData);
         writer.flush();
+        final CompletableFuture<Boolean> isCompelte = new CompletableFuture<>();
+
+        taskExecutor.execute(() -> {
+            LocalDateTime future = LocalDateTime.now().plusMinutes(maxWaitTime);
+            boolean incorrectFileSize = finalFile.length() != serializedFileData.getBytes(StandardCharsets.UTF_8).length;
+            boolean hasTimeoutOccured = LocalDateTime.now().isBefore(future);
+            while (incorrectFileSize && hasTimeoutOccured) {
+                Thread.onSpinWait();
+                incorrectFileSize = finalFile.length() != serializedFileData.getBytes(StandardCharsets.UTF_8).length;
+            }
+            isCompelte.complete(finalFile.length() == serializedFileData.getBytes(StandardCharsets.UTF_8).length);
+        });
+
+        //add some extra time to allow for the timout in the thread to execute normally
+        if (!isCompelte.get(maxWaitTime + 1, TimeUnit.MINUTES)) {
+            throw new FailedToBackupFileException("File was not written to disk in the specified timout period");
+        }
+
         return file.getAbsolutePath();
     }
 
