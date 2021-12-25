@@ -12,12 +12,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.util.FileSystemUtils;
 
 import javax.transaction.Transactional;
 import java.io.*;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -99,17 +100,28 @@ public class FileService {
         logger.info("Listing files in the directory {}", directory);
         File storageDir = new File(directory);
         List<BackupFile> deletedFiles = fileRepository.deleteBackupFileByUploadedBy(username);
-        try {
-            boolean fileSystem = !storageDir.exists() || !FileSystemUtils.deleteRecursively(storageDir.toPath());
-            if (deletedFiles.isEmpty() || fileSystem) {
-                logger.info("No file found for {} in file system {}, database {}", username, fileSystem, deletedFiles.isEmpty());
-                throw new FilesNotFoundException();
-            }
-            return deletedFiles.stream().map(BackupFile::getId).collect(Collectors.toList());
-        } catch (IOException ex) {
-            logger.error(ExceptionUtils.getMessage(ex), ExceptionUtils.getStackTrace(ex));
-            throw new RuntimeException("Failed to Delete Files");
+        boolean fileSystem = !storageDir.exists() || !deleteRecursively(storageDir.getAbsolutePath());
+        if (deletedFiles.isEmpty() || fileSystem) {
+            logger.info("No file found for {} in file system {}, database {}",
+                    username, fileSystem, deletedFiles.isEmpty());
+            throw new FilesNotFoundException();
         }
+        return deletedFiles.stream().map(BackupFile::getId).collect(Collectors.toList());
+    }
+
+    private boolean deleteRecursively(String path) {
+        final boolean[] deleted = new boolean[]{true};
+        File file = new File(path);
+        if (file.exists()) {
+            if (file.isDirectory()) {
+                File[] files = file.listFiles();
+                Arrays.stream((files == null) ? Collections.emptyList().toArray() : files)
+                        .forEach(listedFile -> deleted[0] = deleted[0] && deleteRecursively(((File) listedFile).getAbsolutePath()));
+            }
+            deleted[0] = file.delete() && deleted[0];
+        }
+
+        return deleted[0];
     }
 
     @Transactional(rollbackOn = IOException.class)
@@ -119,7 +131,8 @@ public class FileService {
         String hash = StringUtilities.getChecksum(digest, is);
         Optional<BackupFile> file = fileRepository.findById(hash);
         fileRepository.delete(file.orElseThrow(() -> {
-            logger.error("Failed to find file with hash {} having filename {} and imageTypeDir {}", hash, backedUpFileName, imageTypeDir.getName());
+            logger.error("Failed to find file with hash {} having filename {} and imageTypeDir {}",
+                    hash, backedUpFileName, imageTypeDir.getName());
             return new BackupFileNotFoundException("Failed to find file with hash ".concat(hash));
         }));
         return hash;
