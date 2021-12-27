@@ -1,10 +1,10 @@
 package com.zevrant.services.zevrantbackupservice.controllers;
 
 import com.zevrant.services.zevrantbackupservice.exceptions.BackupFileNotFoundException;
-import com.zevrant.services.zevrantbackupservice.rest.BackupFileRequest;
-import com.zevrant.services.zevrantbackupservice.rest.BackupFileResponse;
-import com.zevrant.services.zevrantbackupservice.rest.CheckExistence;
 import com.zevrant.services.zevrantbackupservice.services.FileService;
+import com.zevrant.services.zevrantuniversalcommon.rest.backup.request.BackupFileRequest;
+import com.zevrant.services.zevrantuniversalcommon.rest.backup.request.CheckExistence;
+import com.zevrant.services.zevrantuniversalcommon.rest.backup.response.BackupFileResponse;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
