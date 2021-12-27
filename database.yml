@@ -33,7 +33,7 @@ spec:
         - name: database
           nfs:
             server: nfs-controller.zevrant-services.com
-            path: /i-data/420aa917/nfs/keys
+            path: /keys
       nodeSelector:
         architecture: arm
       containers:
