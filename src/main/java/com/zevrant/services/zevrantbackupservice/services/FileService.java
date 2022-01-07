@@ -5,12 +5,15 @@ import com.zevrant.services.zevrantbackupservice.exceptions.*;
 import com.zevrant.services.zevrantbackupservice.repositories.FileRepository;
 import com.zevrant.services.zevrantsecuritycommon.utilities.StringUtilities;
 import com.zevrant.services.zevrantuniversalcommon.rest.backup.request.FileInfo;
+import com.zevrant.services.zevrantuniversalcommon.rest.backup.response.BackupFilesRetrieval;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 
@@ -194,5 +197,31 @@ public class FileService {
                 .stream()
                 .map(BackupFile::getId)
                 .collect(Collectors.toList());
+    }
+
+    public int countHashes(String username) {
+        return fileRepository.countAllByUploadedBy(username);
+    }
+
+    public BackupFilesRetrieval getBackupsByPage(String username, int page, int count) {
+        Page<BackupFile> backupFiles = fileRepository.findAllByUploadedBy(username, PageRequest.of(page, count));
+
+        List<com.zevrant.services.zevrantuniversalcommon.rest.backup.response.BackupFile> files = backupFiles.stream()
+                .map(backupFile -> {
+                    com.zevrant.services.zevrantuniversalcommon.rest.backup.response.BackupFile file = new com.zevrant.services.zevrantuniversalcommon.rest.backup.response.BackupFile();
+                    String[] filePathPieces = backupFile.getFilePath().split("/");
+                    file.setFileName(filePathPieces[filePathPieces.length - 1]);
+                    try (BufferedReader reader = new BufferedReader(new FileReader(backupFile.getFilePath()))) {
+                        StringBuilder imageBuilder = new StringBuilder();
+                        reader.lines().forEach(imageBuilder::append);
+                        file.setImageData(imageBuilder.toString());
+                    } catch (IOException ex) {
+                        logger.error("failed to retrieve file with name {}", file.getFileName());
+                    }
+                    return file;
+                }).collect(Collectors.toList());
+
+        int maxItems = countHashes(username);
+        return new BackupFilesRetrieval(files, maxItems, backupFiles.getNumber(), backupFiles.getTotalPages() - 1);
     }
 }

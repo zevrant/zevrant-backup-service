@@ -2,6 +2,7 @@ package com.zevrant.services.zevrantbackupservice.controllers;
 
 import com.zevrant.services.zevrantbackupservice.exceptions.BackupFileNotFoundException;
 import com.zevrant.services.zevrantbackupservice.services.FileService;
+import com.zevrant.services.zevrantbackupservice.services.SecurityContextService;
 import com.zevrant.services.zevrantuniversalcommon.rest.backup.request.BackupFileRequest;
 import com.zevrant.services.zevrantuniversalcommon.rest.backup.request.CheckExistence;
 import com.zevrant.services.zevrantuniversalcommon.rest.backup.response.BackupFileResponse;
@@ -12,10 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
@@ -33,11 +31,14 @@ public class FileBackupController {
     private static final Logger logger = LoggerFactory.getLogger(FileBackupController.class);
     private final FileService fileService;
     private final List<String> activeProfiles;
+    private final SecurityContextService securityContextService;
 
     @Autowired
-    public FileBackupController(FileService fileService, RestTemplate restTemplate,
+    public FileBackupController(FileService fileService,
+                                SecurityContextService securityContextService,
                                 @Value("${spring.profiles.active}") String activeProfiles) {
         this.fileService = fileService;
+        this.securityContextService = securityContextService;
         this.activeProfiles = Arrays.asList(activeProfiles.split(","));
     }
 
@@ -54,7 +55,7 @@ public class FileBackupController {
         return ReactiveSecurityContextHolder.getContext()
                 .map(securityContext -> new CheckExistence(
                         fileService.filterExisting(checkExistence.getFileInfos(),
-                                getUsername(securityContext))));
+                                securityContextService.getUsername(securityContext))));
     }
 
     @ResponseBody
@@ -65,7 +66,7 @@ public class FileBackupController {
                 .publishOn(Schedulers.boundedElastic())
                 .map(securityContext -> {
                     fileService.backupFile(
-                            getUsername(securityContext),
+                            securityContextService.getUsername(securityContext),
                             request.getFileInfo(),
                             request.getSerializedFileData());
 
@@ -82,7 +83,7 @@ public class FileBackupController {
         return ReactiveSecurityContextHolder.getContext()
                 .publishOn(Schedulers.boundedElastic())
                 .map(securityContext -> {
-                    String username = getUsername(securityContext);
+                    String username = securityContextService.getUsername(securityContext);
                     List<String> deleted = new ArrayList<>();
                     if (activeProfiles.contains("local") || activeProfiles.contains("develop") && request == null) {
                         return fileService.removeStorageFor(username);
@@ -111,11 +112,12 @@ public class FileBackupController {
     public @ResponseBody
     Mono<List<String>> getHashesForBackupFiles() {
         return ReactiveSecurityContextHolder.getContext()
-                .map(securityContext -> fileService.getHashesFor(getUsername(securityContext)));
+                .map(securityContext ->
+                        fileService.getHashesFor(
+                                securityContextService.getUsername(securityContext)
+                        )
+                );
     }
 
-    private String getUsername(SecurityContext securityContext) {
-        return ((Jwt) securityContext.getAuthentication().getPrincipal())
-                .getClaim("preferred_username");
-    }
+
 }

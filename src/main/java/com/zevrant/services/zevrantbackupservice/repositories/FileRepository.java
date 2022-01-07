@@ -1,6 +1,8 @@
 package com.zevrant.services.zevrantbackupservice.repositories;
 
 import com.zevrant.services.zevrantbackupservice.entities.BackupFile;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -17,4 +19,8 @@ public interface FileRepository extends JpaRepository<BackupFile, String> {
     List<BackupFile> deleteBackupFileByUploadedBy(String uploadedBy);
 
     List<BackupFile> findAllByUploadedBy(String uploadedBy);
+
+    Page<BackupFile> findAllByUploadedBy(String uploadedBy, Pageable pageRequest);
+
+    Integer countAllByUploadedBy(String uploadedBy);
 }
