@@ -85,5 +85,5 @@ context:
 
 logging:
   level:
-    com.zevrant.services: debug
+    com.zevrant.services: info
     root: info
