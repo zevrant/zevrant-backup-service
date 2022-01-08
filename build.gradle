@@ -21,7 +21,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.zevrant.services:zevrant-universal-common:test-6'
+    implementation 'com.zevrant.services:zevrant-universal-common:7'
     implementation 'com.zevrant.services:zevrant-security-common:9'
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
     implementation 'org.springframework.boot:spring-boot-starter-security'
