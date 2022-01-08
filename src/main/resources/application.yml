@@ -1,5 +1,6 @@
 spring:
   webflux:
+
     base-path: /${spring.application.name}
   main:
     allow-bean-definition-overriding: true

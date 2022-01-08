@@ -3,57 +3,66 @@ package com.zevrant.services.zevrantbackupservice.services;
 import com.zevrant.services.zevrantbackupservice.entities.BackupFile;
 import com.zevrant.services.zevrantbackupservice.exceptions.*;
 import com.zevrant.services.zevrantbackupservice.repositories.FileRepository;
-import com.zevrant.services.zevrantsecuritycommon.utilities.StringUtilities;
 import com.zevrant.services.zevrantuniversalcommon.rest.backup.request.FileInfo;
+import com.zevrant.services.zevrantuniversalcommon.rest.backup.response.BackupFileResponse;
 import com.zevrant.services.zevrantuniversalcommon.rest.backup.response.BackupFilesRetrieval;
+import com.zevrant.services.zevrantuniversalcommon.services.ChecksumService;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import javax.transaction.Transactional;
-import java.io.*;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.channels.WritableByteChannel;
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.security.NoSuchAlgorithmException;
-import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 @Service
 
 public class FileService {
 
-    private final MessageDigest digest;
     private static final Logger logger = LoggerFactory.getLogger(FileService.class);
     private final String backupDirectory;
     private final ThreadPoolTaskExecutor taskExecutor;
     private final FileRepository fileRepository;
     private final int maxWaitTime;
+    private final ChecksumService checksumService;
 
     @Autowired
     public FileService(FileRepository fileRepository,
                        ThreadPoolTaskExecutor taskExecutor,
+                       ChecksumService checksumService,
                        @Value("${zevrant.backup.directory}") String backupDirectory,
                        @Value("${zevrant.backup.io.maxWaitTime}") int maxWaitTime) throws NoSuchAlgorithmException {
         this.fileRepository = fileRepository;
         this.taskExecutor = taskExecutor;
         this.backupDirectory = backupDirectory;
         this.maxWaitTime = maxWaitTime;
-        digest = MessageDigest.getInstance("SHA-512");
+        this.checksumService = checksumService;
     }
 
     public List<FileInfo> filterExisting(List<FileInfo> fileInfos, String user) {
@@ -67,9 +76,10 @@ public class FileService {
     }
 
     @Transactional
-    public void backupFile(String username, FileInfo fileInfo, String serializedFileData) {
-        String[] filePieces = fileInfo.getFileName().split("\\.");
+    public Mono<BackupFileResponse> backupFile(String username, String fileName, Path tempFilePath) {
+        String[] filePieces = fileName.split("\\.");
         String fileDirPath = backupDirectory.concat("/").concat(username).concat("/").concat(filePieces[filePieces.length - 1]).concat("/");
+
         try {
             File fileDir = new File(fileDirPath);
             boolean dirExists = fileDir.exists();
@@ -77,54 +87,41 @@ public class FileService {
                 throw new RuntimeException("Failed to create Directories");
             }
             BackupFile backupFile = new BackupFile();
-            String filePath = fileDirPath.concat(fileInfo.getFileName());
-            filePath = writeFileToDisk(filePath, serializedFileData);
-            backupFile.setFilePath(filePath);
-            backupFile.setId(fileInfo.getHash());
+            String filePath = fileDirPath.concat(fileName);
+            final Path outputFilePath = Path.of(filePath);
+            final String fileHash = getFileHash(tempFilePath);
+            if (fileRepository.existsByIdAndUploadedBy(fileHash, username)) {
+                tempFilePath.toFile().delete();
+                throw new FileAlreadyExistsException("File with hash ".concat(fileHash).concat(" already exists ").concat("for user ").concat(username));
+            }
+            Files.move(tempFilePath, outputFilePath);
+            backupFile.setFilePath(outputFilePath.toAbsolutePath().toString());
+            backupFile.setId(fileHash);
             backupFile.setUploadedBy(username);
             fileRepository.save(backupFile);
+            return Mono.just(new BackupFileResponse());
         } catch (Exception ex) {
             logger.error("Failed to write file to disk and database {}, \n {}", ex.getMessage(), ExceptionUtils.getStackTrace(ex));
-            throw new FailedToBackupFileException("Failed to write file to disk and database "
-                    .concat(ex.getMessage()).concat("\n").concat(ExceptionUtils.getStackTrace(ex)));
+            return Mono.error(new FailedToBackupFileException("Failed to write file to disk and database "
+                    .concat(ex.getMessage()).concat("\n").concat(ExceptionUtils.getStackTrace(ex))));
+        }
+
+    }
+
+    public Mono<Void> writeFluxBuffer(Flux<DataBuffer> content, Path filePath) {
+        try {
+
+            WritableByteChannel byteChannel = Files.newByteChannel(filePath, StandardOpenOption.WRITE, StandardOpenOption.CREATE);
+            return DataBufferUtils.write(content, byteChannel).map(DataBufferUtils::release).then();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return Mono.error(e);
         }
     }
 
-    private String writeFileToDisk(String filePath, String serializedFileData) throws IOException, ExecutionException, InterruptedException, TimeoutException {
-        File file = new File(filePath);
-        if (file.exists()) {
-            int i = 0;
-            do {
-                file = new File(filePath.concat(" (".concat(String.valueOf(i).concat(")"))));
-                i++;
-            } while (file.exists());
-
-        }
-        if (!file.createNewFile()) {
-            throw new RuntimeException(("Failed to create new File"));
-        }
-        BufferedWriter writer = new BufferedWriter(new FileWriter(file));
-        writer.write(serializedFileData);
-        writer.flush();
-        final CompletableFuture<Boolean> isCompelte = new CompletableFuture<>();
-        taskExecutor.execute(() -> {
-            LocalDateTime future = LocalDateTime.now().plusMinutes(maxWaitTime);
-            File finalFile = new File(filePath);
-            boolean incorrectFileSize = finalFile.length() != serializedFileData.getBytes(StandardCharsets.UTF_8).length;
-            boolean hasTimeoutOccured = LocalDateTime.now().isBefore(future);
-            while (incorrectFileSize && hasTimeoutOccured) {
-                Thread.onSpinWait();
-                incorrectFileSize = finalFile.length() != serializedFileData.getBytes(StandardCharsets.UTF_8).length;
-            }
-            isCompelte.complete(finalFile.length() == serializedFileData.getBytes(StandardCharsets.UTF_8).length);
-        });
-
-        //add some extra time to allow for the timout in the thread to execute normally
-        if (!isCompelte.get(maxWaitTime + 1, TimeUnit.MINUTES)) {
-            throw new FailedToBackupFileException("File was not written to disk in the specified timout period");
-        }
-
-        return file.getAbsolutePath();
+    private String getFileHash(Path fileLocation) throws IOException, NoSuchAlgorithmException {
+        BufferedInputStream is = new BufferedInputStream(new FileInputStream(fileLocation.toFile()));
+        return checksumService.getSha512Checksum(is);
     }
 
     @Transactional
@@ -166,10 +163,10 @@ public class FileService {
     }
 
     @Transactional(rollbackOn = IOException.class)
-    public String deleteBackupFile(String backedUpFileName, File imageTypeDir) throws IOException {
+    public String deleteBackupFile(String backedUpFileName, File imageTypeDir) throws IOException, NoSuchAlgorithmException {
         File backedUpFile = new File(imageTypeDir.getAbsolutePath().concat("/").concat(backedUpFileName));
         BufferedInputStream is = new BufferedInputStream(new FileInputStream(backedUpFile));
-        String hash = StringUtilities.getChecksum(digest, is);
+        String hash = checksumService.getSha512Checksum(is);
         Optional<BackupFile> file = fileRepository.findById(hash);
         fileRepository.delete(file.orElseThrow(() -> {
             logger.error("Failed to find file with hash {} having filename {} and imageTypeDir {}",
@@ -211,17 +208,20 @@ public class FileService {
                     com.zevrant.services.zevrantuniversalcommon.rest.backup.response.BackupFile file = new com.zevrant.services.zevrantuniversalcommon.rest.backup.response.BackupFile();
                     String[] filePathPieces = backupFile.getFilePath().split("/");
                     file.setFileName(filePathPieces[filePathPieces.length - 1]);
-                    try (BufferedReader reader = new BufferedReader(new FileReader(backupFile.getFilePath()))) {
-                        StringBuilder imageBuilder = new StringBuilder();
-                        reader.lines().forEach(imageBuilder::append);
-                        file.setImageData(imageBuilder.toString());
-                    } catch (IOException ex) {
-                        logger.error("failed to retrieve file with name {}", file.getFileName());
-                    }
+                    file.setFileHash(backupFile.getId());
                     return file;
                 }).collect(Collectors.toList());
 
         int maxItems = countHashes(username);
         return new BackupFilesRetrieval(files, maxItems, backupFiles.getNumber(), backupFiles.getTotalPages() - 1);
+    }
+
+    public Resource getBackupFile(String username, String fileHash) {
+        BackupFile backupFile = fileRepository.findBackupFileByIdAndUploadedBy(fileHash, username).orElseThrow(FilesNotFoundException::new);
+        Resource resource = new FileSystemResource(backupFile.getFilePath());
+        if (resource.exists() && resource.isReadable()) {
+            return resource;
+        }
+        throw new BackupFileNotFoundException("Backup file was found in our system but resulting file data was missing");
     }
 }

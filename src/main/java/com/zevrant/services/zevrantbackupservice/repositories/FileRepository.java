@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface FileRepository extends JpaRepository<BackupFile, String> {
@@ -23,4 +24,8 @@ public interface FileRepository extends JpaRepository<BackupFile, String> {
     Page<BackupFile> findAllByUploadedBy(String uploadedBy, Pageable pageRequest);
 
     Integer countAllByUploadedBy(String uploadedBy);
+
+    boolean existsByIdAndUploadedBy(String id, String uploadedBy);
+
+    Optional<BackupFile> findBackupFileByIdAndUploadedBy(String id, String uploadedBy);
 }

@@ -4,6 +4,9 @@ import com.zevrant.services.zevrantbackupservice.services.FileService;
 import com.zevrant.services.zevrantbackupservice.services.SecurityContextService;
 import com.zevrant.services.zevrantuniversalcommon.rest.backup.response.BackupFilesRetrieval;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -46,6 +49,19 @@ public class FileRetrievalController {
                                 securityContextService.getUsername(securityContext),
                                 page,
                                 count));
+    }
+
+    @GetMapping("/{fileHash}")
+    @PreAuthorize("hasAnyAuthority('backups')")
+    public Mono<ResponseEntity<Resource>> getBackupFile(@PathVariable("fileHash") String fileHash) {
+        return ReactiveSecurityContextHolder.getContext()
+                .map(securityContext -> fileService
+                        .getBackupFile(
+                                securityContextService.getUsername(securityContext),
+                                fileHash))
+                .map(resource -> ResponseEntity.ok()
+                        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; fileName=\"".concat(resource.getFilename()).concat("\""))
+                        .body(resource));
     }
 }
 
