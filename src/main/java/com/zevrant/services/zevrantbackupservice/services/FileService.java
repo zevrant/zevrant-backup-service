@@ -227,6 +227,7 @@ public class FileService {
         BufferedImage outputImage = new BufferedImage(iconWidth, iconHeight, BufferedImage.TYPE_INT_RGB);
         outputImage.getGraphics().drawImage(before.getScaledInstance(iconWidth, iconHeight, Image.SCALE_SMOOTH), 0, 0, null);
         ImageIO.write(outputImage, "jpg", os);
+        os.close();
         return os.toByteArray();
     }
 
