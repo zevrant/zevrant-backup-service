@@ -11,8 +11,9 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 public class ZevrantBackupServiceApplication {
     private static final Logger logger = LoggerFactory.getLogger(ZevrantBackupServiceApplication.class);
     public static void main(String[] args) {
-        logger.info("Total memory is: {}GB", Runtime.getRuntime().maxMemory() / Math.Math.pow(10, -9));
+        logger.info("Total memory is: {}GB", Runtime.getRuntime().maxMemory() / Math.pow(10, -9));
         SpringApplication.run(ZevrantBackupServiceApplication.class, args);
     }
 
 }
+`
