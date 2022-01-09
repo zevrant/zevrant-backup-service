@@ -12,7 +12,7 @@ import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
-import java.util.Objects;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/retrieval")
@@ -57,15 +57,18 @@ public class FileRetrievalController {
 
     @GetMapping("/{fileHash}")
     @PreAuthorize("hasAnyAuthority('backups')")
-    public Mono<ResponseEntity<Resource>> getBackupFile(@PathVariable("fileHash") String fileHash) {
+    public Mono<ResponseEntity<Resource>> getBackupFile(@PathVariable("fileHash") String fileHash,
+                                                        @RequestParam(value = "iconWidth", required = false) Optional<Integer> displayWidth,
+                                                        @RequestParam(value = "iconHeight", required = false) Optional<Integer> displayHeight) {
         return ReactiveSecurityContextHolder.getContext()
                 .map(securityContext -> fileService
                         .getBackupFile(
                                 securityContextService.getUsername(securityContext),
-                                fileHash))
+                                fileHash,
+                                displayWidth.orElse(0),
+                                displayHeight.orElse(0)))
                 .map(resource -> ResponseEntity.ok()
-                        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; fileName=\""
-                                .concat(Objects.requireNonNull(resource.getFilename())).concat("\""))
+                        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; fileName=\"image\"")
                         .body(resource));
     }
 }

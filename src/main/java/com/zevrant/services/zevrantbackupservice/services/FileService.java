@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.buffer.DataBuffer;
@@ -204,18 +205,12 @@ public class FileService {
         List<com.zevrant.services.zevrantuniversalcommon.rest.backup.response.BackupFile> files = backupFiles.stream()
                 .map(backupFile -> {
                     try {
-                        BufferedImage before = ImageIO.read(new File(backupFile.getFilePath()));
+
                         com.zevrant.services.zevrantuniversalcommon.rest.backup.response.BackupFile file = new com.zevrant.services.zevrantuniversalcommon.rest.backup.response.BackupFile();
                         String[] filePathPieces = backupFile.getFilePath().split("/");
                         file.setFileName(filePathPieces[filePathPieces.length - 1]);
                         file.setFileHash(backupFile.getId());
-                        ByteArrayOutputStream os = new ByteArrayOutputStream();
-                        BufferedImage outputImage = new BufferedImage(iconWidth, iconHeight, BufferedImage.TYPE_INT_RGB);
-                        outputImage.getGraphics().drawImage(before.getScaledInstance(iconWidth, iconHeight, Image.SCALE_SMOOTH), 0, 0, null);
-
-                        ImageIO.write(outputImage, "jpg", os);
-                        byte[] bytes = os.toByteArray();
-                        file.setImageIcon(Base64.getEncoder().encodeToString(bytes));
+                        file.setImageIcon(Base64.getEncoder().encodeToString(scaleImage(backupFile.getFilePath(), iconWidth, iconHeight)));
                         return file;
                     } catch (IOException ex) {
                         throw new RuntimeException("Failed to read and create image icon");
@@ -226,12 +221,37 @@ public class FileService {
         return new BackupFilesRetrieval(files, maxItems, backupFiles.getNumber(), backupFiles.getTotalPages() - 1);
     }
 
-    public Resource getBackupFile(String username, String fileHash) {
+    public byte[] scaleImage(String filePath, int iconWidth, int iconHeight) throws IOException {
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        BufferedImage before = ImageIO.read(new File(filePath));
+        BufferedImage outputImage = new BufferedImage(iconWidth, iconHeight, BufferedImage.TYPE_INT_RGB);
+        outputImage.getGraphics().drawImage(before.getScaledInstance(iconWidth, iconHeight, Image.SCALE_SMOOTH), 0, 0, null);
+        ImageIO.write(outputImage, "jpg", os);
+        return os.toByteArray();
+    }
+
+    public Resource getBackupFile(String username, String fileHash, int iconWidth, int iconHeight) {
         BackupFile backupFile = fileRepository.findBackupFileByIdAndUploadedBy(fileHash, username).orElseThrow(FilesNotFoundException::new);
-        Resource resource = new FileSystemResource(backupFile.getFilePath());
-        if (resource.exists() && resource.isReadable()) {
-            return resource;
+        Resource resource = null;
+        try {
+            if (iconHeight == 0 || iconWidth == 0) {
+                resource = new FileSystemResource(backupFile.getFilePath());
+            } else {
+                byte[] bytes = scaleImage(backupFile.getFilePath(), iconWidth, iconHeight);
+                resource = new ByteArrayResource(bytes);
+            }
+            if (resource.exists() && resource.isReadable()) {
+                return resource;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException("Failed to read resource from disk");
         }
         throw new BackupFileNotFoundException("Backup file was found in our system but resulting file data was missing");
+    }
+
+    public String getFileNameById(String fileHash) {
+        Optional<BackupFile> backupFileProxy = fileRepository.findById(fileHash);
+        return new File(backupFileProxy.orElseThrow(FilesNotFoundException::new).getFilePath()).getName();
     }
 }
