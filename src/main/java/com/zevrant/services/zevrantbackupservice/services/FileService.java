@@ -24,21 +24,19 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import javax.imageio.ImageIO;
 import javax.transaction.Transactional;
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.*;
 import java.nio.channels.WritableByteChannel;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -200,16 +198,28 @@ public class FileService {
         return fileRepository.countAllByUploadedBy(username);
     }
 
-    public BackupFilesRetrieval getBackupsByPage(String username, int page, int count) {
+    public BackupFilesRetrieval getBackupsByPage(String username, int page, int count, int iconWidth, int iconHeight) {
         Page<BackupFile> backupFiles = fileRepository.findAllByUploadedBy(username, PageRequest.of(page, count));
 
         List<com.zevrant.services.zevrantuniversalcommon.rest.backup.response.BackupFile> files = backupFiles.stream()
                 .map(backupFile -> {
-                    com.zevrant.services.zevrantuniversalcommon.rest.backup.response.BackupFile file = new com.zevrant.services.zevrantuniversalcommon.rest.backup.response.BackupFile();
-                    String[] filePathPieces = backupFile.getFilePath().split("/");
-                    file.setFileName(filePathPieces[filePathPieces.length - 1]);
-                    file.setFileHash(backupFile.getId());
-                    return file;
+                    try {
+                        BufferedImage before = ImageIO.read(new File(backupFile.getFilePath()));
+                        com.zevrant.services.zevrantuniversalcommon.rest.backup.response.BackupFile file = new com.zevrant.services.zevrantuniversalcommon.rest.backup.response.BackupFile();
+                        String[] filePathPieces = backupFile.getFilePath().split("/");
+                        file.setFileName(filePathPieces[filePathPieces.length - 1]);
+                        file.setFileHash(backupFile.getId());
+                        ByteArrayOutputStream os = new ByteArrayOutputStream();
+                        BufferedImage outputImage = new BufferedImage(iconWidth, iconHeight, BufferedImage.TYPE_INT_RGB);
+                        outputImage.getGraphics().drawImage(before.getScaledInstance((int) Math.round(iconWidth * .1 / 2), (int) Math.round(iconHeight * .1 / 2), Image.SCALE_SMOOTH), 0, 0, null);
+
+                        ImageIO.write(outputImage, "jpg", os);
+                        byte[] bytes = os.toByteArray();
+                        file.setImageIcon(Base64.getEncoder().encodeToString(bytes));
+                        return file;
+                    } catch (IOException ex) {
+                        throw new RuntimeException("Failed to read and create image icon");
+                    }
                 }).collect(Collectors.toList());
 
         int maxItems = countHashes(username);

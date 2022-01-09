@@ -9,11 +9,10 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
+
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/retrieval")
@@ -42,13 +41,18 @@ public class FileRetrievalController {
 
     @GetMapping("/{page}/{count}")
     @PreAuthorize("hasAnyAuthority('backups')")
-    public Mono<BackupFilesRetrieval> retrieveFiles(@PathVariable int page, @PathVariable int count) {
+    public Mono<BackupFilesRetrieval> retrieveFiles(@PathVariable int page,
+                                                    @PathVariable int count,
+                                                    @RequestParam("iconWidth") int displayWidth,
+                                                    @RequestParam("iconHeight") int displayHeight) {
         return ReactiveSecurityContextHolder.getContext()
                 .map(securityContext -> fileService
                         .getBackupsByPage(
                                 securityContextService.getUsername(securityContext),
                                 page,
-                                count));
+                                count,
+                                displayWidth,
+                                displayHeight));
     }
 
     @GetMapping("/{fileHash}")
@@ -60,7 +64,8 @@ public class FileRetrievalController {
                                 securityContextService.getUsername(securityContext),
                                 fileHash))
                 .map(resource -> ResponseEntity.ok()
-                        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; fileName=\"".concat(resource.getFilename()).concat("\""))
+                        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; fileName=\""
+                                .concat(Objects.requireNonNull(resource.getFilename())).concat("\""))
                         .body(resource));
     }
 }
