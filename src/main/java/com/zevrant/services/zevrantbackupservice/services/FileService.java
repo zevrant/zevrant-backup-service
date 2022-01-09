@@ -211,7 +211,7 @@ public class FileService {
                         file.setFileHash(backupFile.getId());
                         ByteArrayOutputStream os = new ByteArrayOutputStream();
                         BufferedImage outputImage = new BufferedImage(iconWidth, iconHeight, BufferedImage.TYPE_INT_RGB);
-                        outputImage.getGraphics().drawImage(before.getScaledInstance((int) Math.round(iconWidth * .1 / 2), (int) Math.round(iconHeight * .1 / 2), Image.SCALE_SMOOTH), 0, 0, null);
+                        outputImage.getGraphics().drawImage(before.getScaledInstance(iconWidth, iconHeight, Image.SCALE_SMOOTH), 0, 0, null);
 
                         ImageIO.write(outputImage, "jpg", os);
                         byte[] bytes = os.toByteArray();
