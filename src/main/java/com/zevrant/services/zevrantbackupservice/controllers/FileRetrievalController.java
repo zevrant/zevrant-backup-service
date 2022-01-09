@@ -11,6 +11,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.Optional;
 
@@ -31,6 +32,7 @@ public class FileRetrievalController {
     @PreAuthorize("hasAnyAuthority('backups')")
     public Mono<Integer> getImageMediaCount() {
         return ReactiveSecurityContextHolder.getContext()
+                .publishOn(Schedulers.boundedElastic())
                 .map(securityContext ->
                         fileService.countHashes(
                                 securityContextService.getUsername(
