@@ -14,6 +14,8 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 @RestController
 @RequestMapping("/retrieval")
@@ -48,13 +50,24 @@ public class FileRetrievalController {
                                                     @RequestParam("iconWidth") int displayWidth,
                                                     @RequestParam("iconHeight") int displayHeight) {
         return ReactiveSecurityContextHolder.getContext()
-                .map(securityContext -> fileService
-                        .getBackupsByPage(
-                                securityContextService.getUsername(securityContext),
-                                page,
-                                count,
-                                displayWidth,
-                                displayHeight));
+                .map(securityContext -> {
+                    Future<BackupFilesRetrieval> future = fileService
+                            .getBackupsByPage(
+                                    securityContextService.getUsername(securityContext),
+                                    page,
+                                    count,
+                                    displayWidth,
+                                    displayHeight);
+                    while (!future.isDone()) {
+                        Thread.onSpinWait();
+                    }
+                    try {
+                        return future.get();
+                    } catch (InterruptedException | ExecutionException e) {
+                        e.printStackTrace();
+                        throw new RuntimeException("Failed to resolve file IO future");
+                    }
+                });
     }
 
     @GetMapping("/{fileHash}")
@@ -63,15 +76,28 @@ public class FileRetrievalController {
                                                         @RequestParam(value = "iconWidth", required = false) Optional<Integer> displayWidth,
                                                         @RequestParam(value = "iconHeight", required = false) Optional<Integer> displayHeight) {
         return ReactiveSecurityContextHolder.getContext()
-                .map(securityContext -> fileService
-                        .getBackupFile(
-                                securityContextService.getUsername(securityContext),
-                                fileHash,
-                                displayWidth.orElse(0),
-                                displayHeight.orElse(0)))
-                .map(resource -> ResponseEntity.ok()
-                        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; fileName=\"image\"")
-                        .body(resource));
+                .map(securityContext -> {
+                    Future<Resource> resourceFuture = fileService
+                            .getBackupFile(
+                                    securityContextService.getUsername(securityContext),
+                                    fileHash,
+                                    displayWidth.orElse(0),
+                                    displayHeight.orElse(0));
+                    while (!resourceFuture.isDone()) {
+                        Thread.onSpinWait();
+                    }
+                    try {
+                        return resourceFuture.get();
+                    } catch (InterruptedException | ExecutionException e) {
+                        e.printStackTrace();
+                        throw new RuntimeException("Failed to resolve file IO future");
+                    }
+                })
+                .map(resource ->
+                        ResponseEntity.ok()
+                                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; fileName=\"image\"")
+                                .body(resource)
+                );
     }
 }
 

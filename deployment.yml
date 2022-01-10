@@ -54,12 +54,14 @@ spec:
               path: /zevrant-backup-service/actuator/health
               port: 9009
             initialDelaySeconds: 30
+            timeoutSeconds: 30
           livenessProbe:
             httpGet:
               scheme: HTTPS
               path: /zevrant-backup-service/actuator/health
               port: 9009
             initialDelaySeconds: 30
+            timeoutSeconds: 30
           env:
             - name: AWS_ACCESS_KEY_ID
               valueFrom:

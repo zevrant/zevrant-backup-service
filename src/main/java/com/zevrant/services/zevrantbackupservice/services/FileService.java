@@ -38,6 +38,8 @@ import java.nio.file.StandardOpenOption;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 @Service
@@ -199,26 +201,32 @@ public class FileService {
         return fileRepository.countAllByUploadedBy(username);
     }
 
-    public BackupFilesRetrieval getBackupsByPage(String username, int page, int count, int iconWidth, int iconHeight) {
-        Page<BackupFile> backupFiles = fileRepository.findAllByUploadedBy(username, PageRequest.of(page, count));
+    public Future<BackupFilesRetrieval> getBackupsByPage(String username, int page, int count, int iconWidth, int iconHeight) {
+        CompletableFuture<BackupFilesRetrieval> future = new CompletableFuture<>();
+        taskExecutor.execute(() -> {
+            Page<BackupFile> backupFiles = fileRepository.findAllByUploadedBy(username, PageRequest.of(page, count));
+            int maxItems = backupFiles.getTotalPages() * count;
+            List<com.zevrant.services.zevrantuniversalcommon.rest.backup.response.BackupFile> files = backupFiles.stream()
+                    .map(backupFile -> {
+                        try {
 
-        List<com.zevrant.services.zevrantuniversalcommon.rest.backup.response.BackupFile> files = backupFiles.stream()
-                .map(backupFile -> {
-                    try {
+                            com.zevrant.services.zevrantuniversalcommon.rest.backup.response.BackupFile file = new com.zevrant.services.zevrantuniversalcommon.rest.backup.response.BackupFile();
+                            String[] filePathPieces = backupFile.getFilePath().split("/");
+                            file.setFileName(filePathPieces[filePathPieces.length - 1]);
+                            file.setFileHash(backupFile.getId());
+                            file.setImageIcon(Base64.getEncoder().encodeToString(scaleImage(backupFile.getFilePath(), iconWidth, iconHeight)));
+                            return file;
+                        } catch (IOException ex) {
+                            future.completeExceptionally(new RuntimeException("Failed to read and create image icon"));
+                            return null;
+                        }
+                    }).collect(Collectors.toList());
 
-                        com.zevrant.services.zevrantuniversalcommon.rest.backup.response.BackupFile file = new com.zevrant.services.zevrantuniversalcommon.rest.backup.response.BackupFile();
-                        String[] filePathPieces = backupFile.getFilePath().split("/");
-                        file.setFileName(filePathPieces[filePathPieces.length - 1]);
-                        file.setFileHash(backupFile.getId());
-                        file.setImageIcon(Base64.getEncoder().encodeToString(scaleImage(backupFile.getFilePath(), iconWidth, iconHeight)));
-                        return file;
-                    } catch (IOException ex) {
-                        throw new RuntimeException("Failed to read and create image icon");
-                    }
-                }).collect(Collectors.toList());
+            countHashes(username);
+            future.complete(new BackupFilesRetrieval(files, maxItems, backupFiles.getNumber(), backupFiles.getTotalPages() - 1));
+        });
 
-        int maxItems = countHashes(username);
-        return new BackupFilesRetrieval(files, maxItems, backupFiles.getNumber(), backupFiles.getTotalPages() - 1);
+        return future;
     }
 
     public byte[] scaleImage(String filePath, int iconWidth, int iconHeight) throws IOException {
@@ -231,24 +239,30 @@ public class FileService {
         return os.toByteArray();
     }
 
-    public Resource getBackupFile(String username, String fileHash, int iconWidth, int iconHeight) {
-        BackupFile backupFile = fileRepository.findBackupFileByIdAndUploadedBy(fileHash, username).orElseThrow(FilesNotFoundException::new);
-        Resource resource = null;
-        try {
-            if (iconHeight == 0 || iconWidth == 0) {
-                resource = new FileSystemResource(backupFile.getFilePath());
-            } else {
-                byte[] bytes = scaleImage(backupFile.getFilePath(), iconWidth, iconHeight);
-                resource = new ByteArrayResource(bytes);
+    public Future<Resource> getBackupFile(String username, String fileHash, int iconWidth, int iconHeight) {
+        CompletableFuture<Resource> future = new CompletableFuture<>();
+        taskExecutor.execute(() -> {
+            BackupFile backupFile = fileRepository.findBackupFileByIdAndUploadedBy(fileHash, username).orElseThrow(FilesNotFoundException::new);
+            Resource resource = null;
+            try {
+                if (iconHeight == 0 || iconWidth == 0) {
+                    resource = new FileSystemResource(backupFile.getFilePath());
+                } else {
+                    byte[] bytes = scaleImage(backupFile.getFilePath(), iconWidth, iconHeight);
+                    resource = new ByteArrayResource(bytes);
+                }
+                if (resource.exists() && resource.isReadable()) {
+                    future.complete(resource);
+                    return;
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+                future.completeExceptionally(new RuntimeException("Failed to read resource from disk"));
+                return;
             }
-            if (resource.exists() && resource.isReadable()) {
-                return resource;
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-            throw new RuntimeException("Failed to read resource from disk");
-        }
-        throw new BackupFileNotFoundException("Backup file was found in our system but resulting file data was missing");
+            throw new BackupFileNotFoundException("Backup file was found in our system but resulting file data was missing");
+        });
+        return future;
     }
 
     public String getFileNameById(String fileHash) {
