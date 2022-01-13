@@ -33,7 +33,7 @@ spec:
         - name: database
           nfs:
             server: nfs-controller.zevrant-services.com
-            path: /nfs/exports/keys
+            path: /nfs/exports/backup-$ENVIRONMENT
       nodeSelector:
         architecture: arm
       containers:
@@ -41,7 +41,7 @@ spec:
           image: postgres:12
           volumeMounts:
             - name: database
-              mountPath: /storage/keys/
+              mountPath: /opt/postgres
           env:
             - name: POSTGRES_PASSWORD
               valueFrom:
@@ -49,7 +49,7 @@ spec:
                   name: backup-db-password
                   key: password
             - name: PGDATA
-              value: /storage/keys/db/$ENVIRONMENT/backup/
+              value: /opt/postgres
             - name: POSTGRES_USER
               value: zevrant
             - name: POSTGRES_DB
