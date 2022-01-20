@@ -72,7 +72,7 @@ public class FileBackupController {
                                 securityContextService.getUsername(securityContext))));
     }
 
-    @PutMapping
+    @PostMapping
     @PreAuthorize("hasAuthority('backups')")
     public Mono<Void> backupFile(@RequestPart("file") Mono<FilePart> filePartFlux,
                                  @RequestPart("fileName") String fileName) {
