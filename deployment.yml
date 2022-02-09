@@ -79,10 +79,20 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
+            - name: ACCESS_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: backup-vault-credentials
+                  key: password
+            - name: ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: backup-vault-credentials
+                  key: username
           resources:
             requests:
               memory: 4Gi
-              cpu: 1000m
+              cpu: 4000m
             limits:
               memory: 4Gi
-              cpu: 1000m
+              cpu: 4000m
