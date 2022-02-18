@@ -79,7 +79,7 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
-            - name: ACCESS_SECRET_KEY
+            - name: SECRET_ACCESS_KEY
               valueFrom:
                 secretKeyRef:
                   name: backup-vault-credentials
