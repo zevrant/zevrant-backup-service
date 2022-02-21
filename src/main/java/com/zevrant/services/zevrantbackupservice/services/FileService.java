@@ -233,6 +233,7 @@ public class FileService {
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         BufferedImage before = ImageIO.read(new File(filePath));
         BufferedImage outputImage = new BufferedImage(iconWidth, iconHeight, BufferedImage.TYPE_INT_RGB);
+        assert before != null : "output image null";
         outputImage.getGraphics().drawImage(before.getScaledInstance(iconWidth, iconHeight, Image.SCALE_SMOOTH), 0, 0, null);
         ImageIO.write(outputImage, "jpg", os);
         os.close();
