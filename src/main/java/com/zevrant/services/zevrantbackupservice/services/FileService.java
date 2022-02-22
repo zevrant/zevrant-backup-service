@@ -47,6 +47,10 @@ import java.util.stream.Collectors;
 
 public class FileService {
 
+    private static final Map<String, String> imageReaderFormats = new HashMap<>() {{
+        put("jpg", "JPEG");
+    }};
+
     private static final Logger logger = LoggerFactory.getLogger(FileService.class);
     private final String backupDirectory;
     private final ThreadPoolTaskExecutor taskExecutor;
@@ -237,13 +241,14 @@ public class FileService {
             throw new FileNotFoundException("No filepath was passed in to be scaled");
         }
         File imageFile = new File(filePath);
+        logger.debug("scaling image {}", imageFile.getName());
         String[] fileNameArray = imageFile.getName().split("\\.");
         String fileExtension = fileNameArray[fileNameArray.length - 1];
         if (!imageFile.exists() && imageFile.length() > 0) {
             throw new FileNotFoundException("No file was found for requested image ".concat(filePath));
         }
 
-        Iterator<ImageReader> readers = ImageIO.getImageReadersByFormatName(fileExtension);
+        Iterator<ImageReader> readers = ImageIO.getImageReadersByFormatName(imageReaderFormats.getOrDefault(fileExtension, fileExtension));
         if (!readers.hasNext()) {
             throw new InvalidImageTypeException("No image reader for extension type ".concat(fileExtension).concat(" could be found"));
         }
