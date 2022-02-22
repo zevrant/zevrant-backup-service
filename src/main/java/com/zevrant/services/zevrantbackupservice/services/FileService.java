@@ -240,6 +240,9 @@ public class FileService {
         }
         BufferedImage before = ImageIO.read(imageFile);
         BufferedImage outputImage = new BufferedImage(iconWidth, iconHeight, BufferedImage.TYPE_INT_RGB);
+        if (before == null) {
+            throw new FailedToScaleImageException("image stream was null");
+        }
         Image scaledInstance = before.getScaledInstance(iconWidth, iconHeight, Image.SCALE_SMOOTH);
         if (scaledInstance == null) {
             throw new FailedToScaleImageException("Failed to create scaled instance from image stream");
