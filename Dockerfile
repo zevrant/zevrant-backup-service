@@ -20,4 +20,4 @@ RUN curl https://raw.githubusercontent.com/zevrant/zevrant-services-pipeline/mas
 
 CMD password=`date +%s | sha256sum | base64 | head -c 32` \
  && bash ~/startup.sh zevrant-backup-service $password \
- && java -jar -XX:MinRAMPercentage=25 -XX:MaxRAMPercentage=90 -Dspring.profiles.active=$ENVIRONMENT,liquibase -Dpassword=$password /usr/local/microservices/zevrant-home-services/zevrant-backup-service/zevrant-backup-service.jar
+ && java -jar -XX:MinRAMPercentage=25 -XX:MaxRAMPercentage=90 -Djava.awt.headless=true -Dspring.profiles.active=$ENVIRONMENT,liquibase -Dpassword=$password /usr/local/microservices/zevrant-home-services/zevrant-backup-service/zevrant-backup-service.jar
