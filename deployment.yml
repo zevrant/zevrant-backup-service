@@ -89,7 +89,7 @@ spec:
 
 ---
 
-apiVersion: autoscaling/v2beta2
+apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: zevrant-backup-service
@@ -107,6 +107,7 @@ spec:
           value: 1
   scaleTargetRef:
     kind: Deployment
+    apiVersion: apps/v1
     name: zevrant-backup-service
   minReplicas: 1
   maxReplicas: 10
