@@ -240,11 +240,17 @@ public class FileService {
         }
         BufferedImage before = ImageIO.read(imageFile);
         BufferedImage outputImage = new BufferedImage(iconWidth, iconHeight, BufferedImage.TYPE_INT_RGB);
-        assert before != null : "input image null";
-        outputImage.getGraphics().drawImage(before.getScaledInstance(iconWidth, iconHeight, Image.SCALE_SMOOTH), 0, 0, null);
-        ImageIO.write(outputImage, "jpg", os);
-        os.close();
-        return os.toByteArray();
+        Image scaledInstance = before.getScaledInstance(iconWidth, iconHeight, Image.SCALE_SMOOTH);
+        if (scaledInstance == null) {
+            throw new FailedToScaleImageException("Failed to create scaled instance from image stream");
+        }
+        if (outputImage.getGraphics().drawImage(scaledInstance, 0, 0, null)) {
+            ImageIO.write(outputImage, "jpg", os);
+            os.close();
+            return os.toByteArray();
+        } else {
+            throw new FailedToScaleImageException("Failed to draw new scaled image");
+        }
     }
 
     public Future<Resource> getBackupFile(String username, String fileHash, int iconWidth, int iconHeight) {
