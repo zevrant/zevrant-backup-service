@@ -8,6 +8,7 @@ import com.zevrant.services.zevrantuniversalcommon.rest.backup.response.BackupFi
 import com.zevrant.services.zevrantuniversalcommon.rest.backup.response.BackupFilesRetrieval;
 import com.zevrant.services.zevrantuniversalcommon.services.ChecksumService;
 import ij.ImagePlus;
+import ij.io.FileSaver;
 import ij.process.ImageProcessor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -27,10 +28,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import javax.imageio.ImageIO;
 import javax.transaction.Transactional;
-import java.awt.*;
-import java.awt.image.BufferedImage;
 import java.io.*;
 import java.nio.channels.WritableByteChannel;
 import java.nio.file.FileAlreadyExistsException;
@@ -38,7 +36,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.security.NoSuchAlgorithmException;
-import java.util.List;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
@@ -252,7 +249,8 @@ public class FileService {
         ImagePlus imagePlus = new ImagePlus(imageFile.getAbsolutePath());
         ImageProcessor imageProcessor = imagePlus.getProcessor();
         imageProcessor.scale(iconWidth, iconHeight);
-        Image image = imageProcessor.createImage();
+        FileSaver fileSaver = new FileSaver(imagePlus);
+        return fileSaver.serialize();
 
 
 //        Iterator<ImageReader> readers = ImageIO.getImageReadersByFormatName(imageReaderFormats.getOrDefault(fileExtension, fileExtension));
@@ -262,7 +260,7 @@ public class FileService {
 //        ImageReader reader = readers.next();
 //        reader.setInput(imageFile);
 //        BufferedImage before = reader.read(0);
-        BufferedImage outputImage = new BufferedImage(iconWidth, iconHeight, BufferedImage.TYPE_INT_RGB);
+//        BufferedImage outputImage = new BufferedImage(iconWidth, iconHeight, BufferedImage.TYPE_INT_RGB);
 //        if (before == null) {
 //            throw new FailedToScaleImageException("image stream was null");
 //        }
@@ -270,13 +268,7 @@ public class FileService {
 //        if (scaledInstance == null) {
 //            throw new FailedToScaleImageException("Failed to create scaled instance from image stream");
 //        }
-        if (outputImage.getGraphics().drawImage(image, 0, 0, null)) {
-            ImageIO.write(outputImage, "jpg", os);
-            os.close();
-            return os.toByteArray();
-        } else {
-            throw new FailedToScaleImageException("Failed to draw new scaled image");
-        }
+
     }
 
     public Future<Resource> getBackupFile(String username, String fileHash, int iconWidth, int iconHeight) {
