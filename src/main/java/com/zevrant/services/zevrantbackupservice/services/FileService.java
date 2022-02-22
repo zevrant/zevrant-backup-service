@@ -231,9 +231,16 @@ public class FileService {
 
     public byte[] scaleImage(String filePath, int iconWidth, int iconHeight) throws IOException {
         ByteArrayOutputStream os = new ByteArrayOutputStream();
-        BufferedImage before = ImageIO.read(new File(filePath));
+        if (StringUtils.isBlank(filePath)) {
+            throw new FileNotFoundException("No filepath was passed in to be scaled");
+        }
+        File imageFile = new File(filePath);
+        if (!imageFile.exists() && imageFile.length() > 0) {
+            throw new FileNotFoundException("No file was found for requested image ".concat(filePath));
+        }
+        BufferedImage before = ImageIO.read(imageFile);
         BufferedImage outputImage = new BufferedImage(iconWidth, iconHeight, BufferedImage.TYPE_INT_RGB);
-        assert before != null : "output image null";
+        assert before != null : "input image null";
         outputImage.getGraphics().drawImage(before.getScaledInstance(iconWidth, iconHeight, Image.SCALE_SMOOTH), 0, 0, null);
         ImageIO.write(outputImage, "jpg", os);
         os.close();
@@ -258,7 +265,7 @@ public class FileService {
                 }
             } catch (IOException e) {
                 e.printStackTrace();
-                future.completeExceptionally(new RuntimeException("Failed to read resource from disk"));
+                future.completeExceptionally(new RuntimeException("Failed to read resource from disk. ".concat(e.getMessage())));
                 return;
             }
             throw new BackupFileNotFoundException("Backup file was found in our system but resulting file data was missing");

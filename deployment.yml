@@ -14,7 +14,7 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: zevrant-backup-service-deployment
+  name: zevrant-backup-service
   labels:
     app: zevrant-backup-service
 spec:
@@ -86,3 +86,23 @@ spec:
             limits:
               memory: 4Gi
               cpu: 4000m
+
+---
+
+apiVersion: autoscaling/v2beta2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: zevrant-backup-service
+spec:
+  scaleTargetRef:
+    kind: Deployment
+    name: zevrant-backup-service
+  minReplicas: 1
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60

@@ -14,7 +14,7 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: zevrant-backup-service-db-deployment
+  name: zevrant-backup-service-db
   labels:
     app: zevrant-backup-service-db
 spec:
