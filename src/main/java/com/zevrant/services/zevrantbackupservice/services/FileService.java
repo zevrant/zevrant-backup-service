@@ -238,7 +238,7 @@ public class FileService {
         if (!imageFile.exists() && imageFile.length() > 0) {
             throw new FileNotFoundException("No file was found for requested image ".concat(filePath));
         }
-        BufferedImage before = ImageIO.read(imageFile);
+        BufferedImage before = ImageIO.read(new BufferedInputStream(new FileInputStream(imageFile)));
         BufferedImage outputImage = new BufferedImage(iconWidth, iconHeight, BufferedImage.TYPE_INT_RGB);
         if (before == null) {
             throw new FailedToScaleImageException("image stream was null");
