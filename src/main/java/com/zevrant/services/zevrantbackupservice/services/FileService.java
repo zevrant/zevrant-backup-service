@@ -7,6 +7,8 @@ import com.zevrant.services.zevrantuniversalcommon.rest.backup.request.FileInfo;
 import com.zevrant.services.zevrantuniversalcommon.rest.backup.response.BackupFileResponse;
 import com.zevrant.services.zevrantuniversalcommon.rest.backup.response.BackupFilesRetrieval;
 import com.zevrant.services.zevrantuniversalcommon.services.ChecksumService;
+import ij.ImagePlus;
+import ij.process.ImageProcessor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
@@ -26,7 +28,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import javax.imageio.ImageIO;
-import javax.imageio.ImageReader;
 import javax.transaction.Transactional;
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -248,22 +249,28 @@ public class FileService {
             throw new FileNotFoundException("No file was found for requested image ".concat(filePath));
         }
 
-        Iterator<ImageReader> readers = ImageIO.getImageReadersByFormatName(imageReaderFormats.getOrDefault(fileExtension, fileExtension));
-        if (!readers.hasNext()) {
-            throw new InvalidImageTypeException("No image reader for extension type ".concat(fileExtension).concat(" could be found"));
-        }
-        ImageReader reader = readers.next();
-        reader.setInput(imageFile);
-        BufferedImage before = reader.read(0);
+        ImagePlus imagePlus = new ImagePlus(imageFile.getAbsolutePath());
+        ImageProcessor imageProcessor = imagePlus.getProcessor();
+        imageProcessor.scale(iconWidth, iconHeight);
+        Image image = imageProcessor.createImage();
+
+
+//        Iterator<ImageReader> readers = ImageIO.getImageReadersByFormatName(imageReaderFormats.getOrDefault(fileExtension, fileExtension));
+//        if (!readers.hasNext()) {
+//            throw new InvalidImageTypeException("No image reader for extension type ".concat(fileExtension).concat(" could be found"));
+//        }
+//        ImageReader reader = readers.next();
+//        reader.setInput(imageFile);
+//        BufferedImage before = reader.read(0);
         BufferedImage outputImage = new BufferedImage(iconWidth, iconHeight, BufferedImage.TYPE_INT_RGB);
-        if (before == null) {
-            throw new FailedToScaleImageException("image stream was null");
-        }
-        Image scaledInstance = before.getScaledInstance(iconWidth, iconHeight, Image.SCALE_SMOOTH);
-        if (scaledInstance == null) {
-            throw new FailedToScaleImageException("Failed to create scaled instance from image stream");
-        }
-        if (outputImage.getGraphics().drawImage(scaledInstance, 0, 0, null)) {
+//        if (before == null) {
+//            throw new FailedToScaleImageException("image stream was null");
+//        }
+//        Image scaledInstance = before.getScaledInstance(iconWidth, iconHeight, Image.SCALE_SMOOTH);
+//        if (scaledInstance == null) {
+//            throw new FailedToScaleImageException("Failed to create scaled instance from image stream");
+//        }
+        if (outputImage.getGraphics().drawImage(image, 0, 0, null)) {
             ImageIO.write(outputImage, "jpg", os);
             os.close();
             return os.toByteArray();
