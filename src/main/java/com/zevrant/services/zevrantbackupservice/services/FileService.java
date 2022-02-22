@@ -26,6 +26,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
 import javax.transaction.Transactional;
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -231,14 +232,24 @@ public class FileService {
 
     public byte[] scaleImage(String filePath, int iconWidth, int iconHeight) throws IOException {
         ByteArrayOutputStream os = new ByteArrayOutputStream();
+
         if (StringUtils.isBlank(filePath)) {
             throw new FileNotFoundException("No filepath was passed in to be scaled");
         }
         File imageFile = new File(filePath);
+        String[] fileNameArray = imageFile.getName().split("\\.");
+        String fileExtension = fileNameArray[fileNameArray.length - 1];
         if (!imageFile.exists() && imageFile.length() > 0) {
             throw new FileNotFoundException("No file was found for requested image ".concat(filePath));
         }
-        BufferedImage before = ImageIO.read(new BufferedInputStream(new FileInputStream(imageFile)));
+
+        Iterator<ImageReader> readers = ImageIO.getImageReadersByFormatName(fileExtension);
+        if (!readers.hasNext()) {
+            throw new InvalidImageTypeException("No image reader for extension type ".concat(fileExtension).concat(" could be found"));
+        }
+        ImageReader reader = readers.next();
+        reader.setInput(imageFile);
+        BufferedImage before = reader.read(0);
         BufferedImage outputImage = new BufferedImage(iconWidth, iconHeight, BufferedImage.TYPE_INT_RGB);
         if (before == null) {
             throw new FailedToScaleImageException("image stream was null");
