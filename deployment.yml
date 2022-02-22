@@ -94,6 +94,17 @@ kind: HorizontalPodAutoscaler
 metadata:
   name: zevrant-backup-service
 spec:
+  behavior:
+    scaleUp:
+      policies:
+        - periodSeconds: 10
+          type: Pods
+          value: 1
+    scaleDown:
+      policies:
+        - periodSeconds: 10
+          type: Pods
+          value: 1
   scaleTargetRef:
     kind: Deployment
     name: zevrant-backup-service
