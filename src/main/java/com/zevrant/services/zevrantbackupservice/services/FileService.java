@@ -7,9 +7,6 @@ import com.zevrant.services.zevrantuniversalcommon.rest.backup.request.FileInfo;
 import com.zevrant.services.zevrantuniversalcommon.rest.backup.response.BackupFileResponse;
 import com.zevrant.services.zevrantuniversalcommon.rest.backup.response.BackupFilesRetrieval;
 import com.zevrant.services.zevrantuniversalcommon.services.ChecksumService;
-import ij.ImagePlus;
-import ij.io.FileSaver;
-import ij.process.ImageProcessor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
@@ -28,7 +25,10 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import javax.imageio.ImageIO;
 import javax.transaction.Transactional;
+import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.io.*;
 import java.nio.channels.WritableByteChannel;
 import java.nio.file.FileAlreadyExistsException;
@@ -36,6 +36,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.security.NoSuchAlgorithmException;
+import java.util.List;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
@@ -94,6 +95,9 @@ public class FileService {
             String filePath = fileDirPath.concat(fileName);
             final Path outputFilePath = Path.of(filePath);
             final String fileHash = getFileHash(tempFilePath);
+            if (ImageIO.read(tempFilePath.toFile()) == null) {
+                throw new NotAnImageException("Uploaded file is not an image, encrypting file prior to upload is not supported");
+            }
             if (fileRepository.existsByIdAndUploadedBy(fileHash, username)) {
                 tempFilePath.toFile().delete();
                 throw new FileAlreadyExistsException("File with hash ".concat(fileHash).concat(" already exists ").concat("for user ").concat(username));
@@ -104,10 +108,17 @@ public class FileService {
             backupFile.setUploadedBy(username);
             fileRepository.save(backupFile);
             return Mono.just(new BackupFileResponse());
+        } catch (IOException ex) {
+            ex.printStackTrace();
+            logger.error("Failed reading image file from disk");
+            throw new FailedToBackupFileException("Exception thrown on read, \n".concat(ex.getMessage()));
         } catch (Exception ex) {
             logger.error("Failed to write file to disk and database {}, \n {}", ex.getMessage(), ExceptionUtils.getStackTrace(ex));
-            return Mono.error(new FailedToBackupFileException("Failed to write file to disk and database "
-                    .concat(ex.getMessage()).concat("\n").concat(ExceptionUtils.getStackTrace(ex))));
+            if (ex instanceof NotAnImageException) {
+                throw (NotAnImageException) ex;
+            }
+            throw new FailedToBackupFileException("Failed to write file to disk and database "
+                    .concat(ex.getMessage()).concat("\n").concat(ExceptionUtils.getStackTrace(ex)));
         }
 
     }
@@ -234,41 +245,29 @@ public class FileService {
 
     public byte[] scaleImage(String filePath, int iconWidth, int iconHeight) throws IOException {
         ByteArrayOutputStream os = new ByteArrayOutputStream();
-
         if (StringUtils.isBlank(filePath)) {
             throw new FileNotFoundException("No filepath was passed in to be scaled");
         }
         File imageFile = new File(filePath);
-        logger.debug("scaling image {}", imageFile.getName());
-        String[] fileNameArray = imageFile.getName().split("\\.");
-        String fileExtension = fileNameArray[fileNameArray.length - 1];
         if (!imageFile.exists() && imageFile.length() > 0) {
             throw new FileNotFoundException("No file was found for requested image ".concat(filePath));
         }
-
-        ImagePlus imagePlus = new ImagePlus(imageFile.getAbsolutePath());
-        ImageProcessor imageProcessor = imagePlus.getProcessor();
-        imageProcessor.scale(iconWidth, iconHeight);
-        FileSaver fileSaver = new FileSaver(imagePlus);
-        return fileSaver.serialize();
-
-
-//        Iterator<ImageReader> readers = ImageIO.getImageReadersByFormatName(imageReaderFormats.getOrDefault(fileExtension, fileExtension));
-//        if (!readers.hasNext()) {
-//            throw new InvalidImageTypeException("No image reader for extension type ".concat(fileExtension).concat(" could be found"));
-//        }
-//        ImageReader reader = readers.next();
-//        reader.setInput(imageFile);
-//        BufferedImage before = reader.read(0);
-//        BufferedImage outputImage = new BufferedImage(iconWidth, iconHeight, BufferedImage.TYPE_INT_RGB);
-//        if (before == null) {
-//            throw new FailedToScaleImageException("image stream was null");
-//        }
-//        Image scaledInstance = before.getScaledInstance(iconWidth, iconHeight, Image.SCALE_SMOOTH);
-//        if (scaledInstance == null) {
-//            throw new FailedToScaleImageException("Failed to create scaled instance from image stream");
-//        }
-
+        BufferedImage before = ImageIO.read(imageFile);
+        BufferedImage outputImage = new BufferedImage(iconWidth, iconHeight, BufferedImage.TYPE_INT_RGB);
+        if (before == null) {
+            throw new FailedToScaleImageException("Could not process image, this is likely due to this being an invalid image");
+        }
+        Image scaledInstance = before.getScaledInstance(iconWidth, iconHeight, Image.SCALE_SMOOTH);
+        if (scaledInstance == null) {
+            throw new FailedToScaleImageException("Failed to create scaled instance from image stream");
+        }
+        if (outputImage.getGraphics().drawImage(scaledInstance, 0, 0, null)) {
+            ImageIO.write(outputImage, "jpg", os);
+            os.close();
+            return os.toByteArray();
+        } else {
+            throw new FailedToScaleImageException("Failed to draw new scaled image");
+        }
     }
 
     public Future<Resource> getBackupFile(String username, String fileHash, int iconWidth, int iconHeight) {

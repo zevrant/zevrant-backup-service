@@ -10,7 +10,7 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5428/backup?createDatabaseIfNotExist=true
     username: sa
-    password: ${rds.backup.password}
+    password: example
     hikari:
       connection-timeout: 999999999
   jpa:
