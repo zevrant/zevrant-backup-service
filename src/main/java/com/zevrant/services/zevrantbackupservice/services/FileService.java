@@ -155,26 +155,18 @@ public class FileService {
         return deletedFiles.stream().map(BackupFile::getId).collect(Collectors.toList());
     }
 
-    private boolean deleteRecursively(String path, String username) {
+    private boolean deleteRecursively(String path) {
         File file = new File(path);
-        final boolean[] deleted = new boolean[]{file.exists()};
-        if (deleted[0]) {
-            if (file.isDirectory()) {
-                File[] files = file.listFiles();
-                Arrays.stream((files == null) ? Collections.emptyList().toArray() : files)
-                        .forEach(listedFile -> {
-                            if (!((File) listedFile).getAbsolutePath().equals(file.getAbsolutePath())) {
-                                deleted[0] = deleted[0] && deleteRecursively(((File) listedFile).getAbsolutePath(), username);
-                            }
-                        });
-            } else {
-                boolean isDeleted = file.delete();
-                logger.debug("file {} deleted? {}", file.getAbsoluteFile(), isDeleted);
-                deleted[0] = isDeleted && deleted[0];
-            }
-        }
-
-        return deleted[0];
+        Arrays.stream(file.listFiles())
+                .filter(File::isDirectory)
+                .forEach(directory -> {
+                    deleteRecursively(directory.getAbsolutePath());
+                    directory.delete();
+                });
+        Arrays.stream(file.listFiles())
+                .filter(File::isFile)
+                .forEach(File::delete);
+        return true;
     }
 
     @Transactional(rollbackOn = IOException.class)
@@ -299,5 +291,10 @@ public class FileService {
     public String getFileNameById(String fileHash) {
         Optional<BackupFile> backupFileProxy = fileRepository.findById(fileHash);
         return new File(backupFileProxy.orElseThrow(FilesNotFoundException::new).getFilePath()).getName();
+    }
+
+    public void deleteUser(String username) {
+        deleteRecursively(backupDirectory.concat(username));
+        fileRepository.deleteAllByUploadedBy(username);
     }
 }

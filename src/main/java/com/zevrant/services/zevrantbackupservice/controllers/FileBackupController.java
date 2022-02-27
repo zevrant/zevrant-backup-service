@@ -1,14 +1,13 @@
 package com.zevrant.services.zevrantbackupservice.controllers;
 
-import com.zevrant.services.zevrantbackupservice.exceptions.BackupFileNotFoundException;
 import com.zevrant.services.zevrantbackupservice.services.FileService;
 import com.zevrant.services.zevrantbackupservice.services.SecurityContextService;
 import com.zevrant.services.zevrantuniversalcommon.rest.backup.request.CheckExistence;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.http.codec.multipart.Part;
@@ -24,8 +23,10 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.security.NoSuchAlgorithmException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
 import java.util.function.Function;
 
 @RestController
@@ -92,34 +93,37 @@ public class FileBackupController {
     }
 
     @DeleteMapping
+    @Profile({"local", "develop"})
     @PreAuthorize("hasAuthority('backups')")
-    public Mono<List<String>> removeStorage(@RequestBody(required = false) CheckExistence request) {
+    public Mono<List<String>> removeUser() {
         return ReactiveSecurityContextHolder.getContext()
                 .publishOn(Schedulers.boundedElastic())
                 .map(securityContext -> {
                     String username = securityContextService.getUsername(securityContext);
                     List<String> deleted = new ArrayList<>();
-                    if (activeProfiles.contains("local") || activeProfiles.contains("develop") && request == null) {
+                    if (activeProfiles.contains("local") || activeProfiles.contains("develop")) {
                         return fileService.removeStorageFor(username);
                     }
-                    fileService.filterExisting((request != null) ? request.getFileInfos() : Collections.emptyList(), username)
-                            .forEach(fileInfo -> {
-                                String fileHash = "";
-                                try {
-                                    String[] fileNamePieces = fileInfo.getFileName().split("\\.");
-                                    fileHash = fileService.deleteBackupFile(fileInfo.getFileName(),
-                                            fileService.getImageTypeDir(fileNamePieces[fileNamePieces.length - 1], username));
-                                } catch (BackupFileNotFoundException | IOException ex) {
-                                    logger.info("Failed to delete file {} with hash {}", fileInfo.getFileName(), fileInfo.getHash());
-                                } catch (NoSuchAlgorithmException e) {
-                                    e.printStackTrace();
-                                    logger.error("Failed to find algorithm to create hash with");
-                                }
+                    fileService.deleteUser(username);
 
-                                if (StringUtils.isNotBlank(fileHash)) {
-                                    deleted.add(fileInfo.getFileName());
-                                }
-                            });
+//                    fileService.filterExisting((request != null) ? request.getFileInfos() : Collections.emptyList(), username)
+//                            .forEach(fileInfo -> {
+//                                String fileHash = "";
+//                                try {
+//                                    String[] fileNamePieces = fileInfo.getFileName().split("\\.");
+//                                    fileHash = fileService.deleteBackupFile(fileInfo.getFileName(),
+//                                            fileService.getImageTypeDir(fileNamePieces[fileNamePieces.length - 1], username));
+//                                } catch (BackupFileNotFoundException | IOException ex) {
+//                                    logger.info("Failed to delete file {} with hash {}", fileInfo.getFileName(), fileInfo.getHash());
+//                                } catch (NoSuchAlgorithmException e) {
+//                                    e.printStackTrace();
+//                                    logger.error("Failed to find algorithm to create hash with");
+//                                }
+//
+//                                if (StringUtils.isNotBlank(fileHash)) {
+//                                    deleted.add(fileInfo.getFileName());
+//                                }
+//                            });
                     return deleted;
                 });
     }

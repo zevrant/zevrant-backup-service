@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import javax.transaction.Transactional;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,4 +29,7 @@ public interface FileRepository extends JpaRepository<BackupFile, String> {
     boolean existsByIdAndUploadedBy(String id, String uploadedBy);
 
     Optional<BackupFile> findBackupFileByIdAndUploadedBy(String id, String uploadedBy);
+
+    @Transactional
+    long deleteAllByUploadedBy(String username);
 }
