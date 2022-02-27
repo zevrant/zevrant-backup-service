@@ -101,9 +101,6 @@ public class FileBackupController {
                 .map(securityContext -> {
                     String username = securityContextService.getUsername(securityContext);
                     List<String> deleted = new ArrayList<>();
-                    if (activeProfiles.contains("local") || activeProfiles.contains("develop")) {
-                        return fileService.removeStorageFor(username);
-                    }
                     fileService.deleteUser(username);
 
 //                    fileService.filterExisting((request != null) ? request.getFileInfos() : Collections.emptyList(), username)
