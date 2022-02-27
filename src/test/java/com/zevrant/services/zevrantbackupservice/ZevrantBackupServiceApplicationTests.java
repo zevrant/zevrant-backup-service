@@ -1,13 +1,11 @@
 package com.zevrant.services.zevrantbackupservice;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
-
-@SpringBootTest
-class ZevrantBackupServiceApplicationTests {
-
-    @Test
-    void contextLoads() {
-    }
-
-}
+//TODO testing that requires the application context is NOT unit testing
+//@SpringBootTest
+//class ZevrantBackupServiceApplicationTests {
+//
+//    @Test
+//    void contextLoads() {
+//    }
+//
+//}

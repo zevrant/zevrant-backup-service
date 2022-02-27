@@ -146,7 +146,7 @@ public class FileService {
         File storageDir = new File(directory);
         List<BackupFile> deletedFiles = fileRepository.deleteBackupFileByUploadedBy(username);
         boolean fileSystem = !storageDir.exists()
-                || !deleteRecursively(storageDir.getAbsolutePath(), username);
+                || !deleteRecursively(storageDir.getAbsolutePath().concat(username));
         if (deletedFiles.isEmpty() || fileSystem) {
             logger.info("No file found for {} in file system {}, database {}",
                     username, fileSystem, deletedFiles.isEmpty());
