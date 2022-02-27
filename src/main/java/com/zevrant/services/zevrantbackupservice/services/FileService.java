@@ -157,15 +157,18 @@ public class FileService {
 
     private boolean deleteRecursively(String path) {
         File file = new File(path);
-        Arrays.stream(file.listFiles())
-                .filter(File::isDirectory)
-                .forEach(directory -> {
-                    deleteRecursively(directory.getAbsolutePath());
-                    directory.delete();
-                });
-        Arrays.stream(file.listFiles())
-                .filter(File::isFile)
-                .forEach(File::delete);
+        File[] files = file.listFiles();
+        if (files != null) {
+            Arrays.stream(files)
+                    .filter(File::isDirectory)
+                    .forEach(directory -> {
+                        deleteRecursively(directory.getAbsolutePath());
+                        directory.delete();
+                    });
+            Arrays.stream(files)
+                    .filter(File::isFile)
+                    .forEach(File::delete);
+        }
         return true;
     }
 
