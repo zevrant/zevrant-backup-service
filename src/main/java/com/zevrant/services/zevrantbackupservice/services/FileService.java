@@ -156,6 +156,7 @@ public class FileService {
     }
 
     private boolean deleteRecursively(String path) {
+        logger.info(path);
         File file = new File(path);
         File[] files = file.listFiles();
         if (files != null) {
