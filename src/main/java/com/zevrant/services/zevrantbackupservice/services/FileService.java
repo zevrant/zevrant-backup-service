@@ -7,6 +7,7 @@ import com.zevrant.services.zevrantuniversalcommon.rest.backup.request.FileInfo;
 import com.zevrant.services.zevrantuniversalcommon.rest.backup.response.BackupFileResponse;
 import com.zevrant.services.zevrantuniversalcommon.rest.backup.response.BackupFilesRetrieval;
 import com.zevrant.services.zevrantuniversalcommon.services.ChecksumService;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
@@ -55,7 +56,6 @@ public class FileService {
     private final ThreadPoolTaskExecutor taskExecutor;
     private final FileRepository fileRepository;
     private final int maxWaitTime;
-    private final ChecksumService checksumService;
 
     @Autowired
     public FileService(FileRepository fileRepository,
@@ -67,7 +67,6 @@ public class FileService {
         this.taskExecutor = taskExecutor;
         this.backupDirectory = backupDirectory;
         this.maxWaitTime = maxWaitTime;
-        this.checksumService = checksumService;
     }
 
     public List<FileInfo> filterExisting(List<FileInfo> fileInfos, String user) {
@@ -110,7 +109,7 @@ public class FileService {
             return Mono.just(new BackupFileResponse());
         } catch (IOException ex) {
             ex.printStackTrace();
-            logger.error("Failed reading image file from disk");
+            logger.error("Disk access for image failed");
             throw new FailedToBackupFileException("Exception thrown on read, \n".concat(ex.getMessage()));
         } catch (Exception ex) {
             logger.error("Failed to write file to disk and database {}, \n {}", ex.getMessage(), ExceptionUtils.getStackTrace(ex));
@@ -136,7 +135,7 @@ public class FileService {
 
     private String getFileHash(Path fileLocation) throws IOException, NoSuchAlgorithmException {
         BufferedInputStream is = new BufferedInputStream(new FileInputStream(fileLocation.toFile()));
-        return checksumService.getSha512Checksum(is);
+        return DigestUtils.sha512Hex(is);
     }
 
     @Transactional
@@ -177,7 +176,7 @@ public class FileService {
     public String deleteBackupFile(String backedUpFileName, File imageTypeDir) throws IOException, NoSuchAlgorithmException {
         File backedUpFile = new File(imageTypeDir.getAbsolutePath().concat("/").concat(backedUpFileName));
         BufferedInputStream is = new BufferedInputStream(new FileInputStream(backedUpFile));
-        String hash = checksumService.getSha512Checksum(is);
+        String hash = DigestUtils.sha512Hex(is);
         Optional<BackupFile> file = fileRepository.findById(hash);
         fileRepository.delete(file.orElseThrow(() -> {
             logger.error("Failed to find file with hash {} having filename {} and imageTypeDir {}",
@@ -298,7 +297,7 @@ public class FileService {
     }
 
     public void deleteUser(String username) {
-        deleteRecursively(backupDirectory.concat(username));
+        deleteRecursively(backupDirectory.concat("/").concat(username));
         fileRepository.deleteAllByUploadedBy(username);
     }
 }

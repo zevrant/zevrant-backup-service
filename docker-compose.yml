@@ -4,6 +4,7 @@ services:
     ports:
       - "5428:5432"
     image: postgres:latest
+    container_name: zevrabnt-backup-service-db
     environment:
       POSTGRES_USER: sa
       POSTGRES_PASSWORD: example

@@ -30,7 +30,7 @@ spring:
       client:
         provider:
           keycloak:
-            issuer-uri: https://localhost:9011/auth/realms/zevrant-services
+            issuer-uri: https://172.16.0.1:9011/auth/realms/zevrant-services-local
         registration:
           keycloak:
             client-id: ${zevrant.services.oauth.clientId}

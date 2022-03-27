@@ -31,6 +31,7 @@ dependencies {
     implementation 'fi.solita.clamav:clamav-client:1.0.1'
     implementation 'io.micrometer:micrometer-registry-prometheus:1.8.2'
     implementation 'org.apache.commons:commons-lang3:3.12.0'
+    implementation 'commons-codec:commons-codec:1.15'
     implementation 'org.postgresql:postgresql'
     implementation 'net.imagej:ij:1.53j'
 
