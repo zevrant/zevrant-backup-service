@@ -24,3 +24,15 @@ databaseChangeLog:
                   type: varchar(255)
                   constraints:
                     - nullable: false
+  - changeSet:
+      id: 2
+      author: zevrant
+      failOnError: false
+      changes:
+        - addColumn:
+            tableName: FILE
+            columns:
+              - column:
+                  name: taken_on
+                  type: timestamp
+                  value:

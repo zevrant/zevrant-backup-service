@@ -296,6 +296,7 @@ public class FileService {
         return new File(backupFileProxy.orElseThrow(FilesNotFoundException::new).getFilePath()).getName();
     }
 
+    @Transactional
     public void deleteUser(String username) {
         deleteRecursively(backupDirectory.concat("/").concat(username));
         fileRepository.deleteAllByUploadedBy(username);

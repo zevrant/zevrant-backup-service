@@ -34,34 +34,95 @@ spec:
       imagePullSecrets:
         - name: regcred
       volumes:
+        - name: password-volume
+          emptyDir:
+            sizeLimit: "1Mi"
+        - name: backup-acme
+          glusterfs:
+            endpoints: glusterfs-cluster
+            path: $ENVIRONMENT-acme-zevrant-backup-service
+            readOnly: false
+        - name: backup-vault
+          secret:
+            secretName: oauth-vault-credentials
+            defaultMode: 0600
         - name: backup-service
-          nfs:
-            server: nfs-controller.zevrant-services.com
-            path: /nfs/exports/backup-service-$ENVIRONMENT
+          glusterfs:
+            endpoints: glusterfs-cluster
+            path: $ENVIRONMENT-backup-service
       nodeSelector:
         architecture: amd64
       containers:
+        - name: acme-server
+          image: docker.io/zevrant/acme-server:latest
+          ports:
+            - containerPort: 80
+          command:
+            - "/bin/sh"
+          args:
+            - "-c"
+            - |
+              mkdir -p /opt/acme/root
+              mkdir -p /opt/acme/certs
+              mkdir -p /opt/passwords/keystore
+              mkdir -p /opt/passwords/vault
+              cp /var/zevrant-services/vault/* /opt/passwords/vault
+              openssl rand 256 | base64 > /opt/passwords/keystore/password
+              ls -la /opt/acme/certs/
+              /usr/bin/step ca bootstrap --ca-url certificate-authority --force --fingerprint "$CA_FINGERPRINT" --install
+              nginx
+              /usr/bin/step ca certificate zevrant-backup-service /opt/acme/certs/public.crt /opt/acme/certs/private.pem --force --ca-url https://certificate-authority --provisioner acme --webroot /opt/acme/root  --san $POD_IP --san $SERVICE_NAME
+              openssl pkcs12 -export -inkey /opt/acme/certs/private.pem -in /opt/acme/certs/public.crt -passout file:/opt/passwords/keystore/password -out /opt/acme/certs/zevrant-services.p12
+              rm /opt/acme/certs/private.pem /opt/acme/certs/public.crt
+              chown -R 1000:1000 /opt/acme/certs
+              chown -R 1000:1000 /opt/passwords
+              chmod 0600 /opt/passwords/vault/*
+              chmod 0600 /opt/passwords/keystore/*
+              tail -f /var/log/nginx/access.log
+          volumeMounts:
+            - name: backup-acme
+              mountPath: /opt/acme/
+            - mountPath: /var/zevrant-services/vault
+              name: backup-vault
+            - name: password-volume
+              mountPath: /opt/passwords
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: SERVICE_NAME
+              value: zevrant-backup-service
+            - name: CA_FINGERPRINT
+              valueFrom:
+                secretKeyRef:
+                  key: fingerprint
+                  name: ca-fingerprint
         - name: zevrant-backup-service
           image: zevrant/zevrant-backup-service:$VERSION
           volumeMounts:
             - name: backup-service
               mountPath: /storage/backups/
+            - name: backup-acme
+              mountPath: /opt/acme/
+            - name: password-volume
+              mountPath: /var/zevrant-services
           ports:
             - containerPort: 9009
-          readinessProbe:
-            httpGet:
-              scheme: HTTPS
-              path: /zevrant-backup-service/actuator/health
-              port: 9009
-            initialDelaySeconds: 30
-            timeoutSeconds: 30
-          livenessProbe:
-            httpGet:
-              scheme: HTTPS
-              path: /zevrant-backup-service/actuator/health
-              port: 9009
-            initialDelaySeconds: 30
-            timeoutSeconds: 30
+          #          readinessProbe:
+          #            httpGet:
+          #              scheme: HTTPS
+          #              path: /zevrant-backup-service/actuator/health
+          #              port: 9009
+          #            initialDelaySeconds: 30
+          #            timeoutSeconds: 30
+          #          livenessProbe:
+          #            httpGet:
+          #              scheme: HTTPS
+          #              path: /zevrant-backup-service/actuator/health
+          #              port: 9009
+          #            initialDelaySeconds: 30
+          #            timeoutSeconds: 30
           env:
             - name: ENVIRONMENT
               value: $ENVIRONMENT
@@ -69,16 +130,11 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
-            - name: SECRET_ACCESS_KEY
+            - name: CA_FINGERPRINT
               valueFrom:
                 secretKeyRef:
-                  name: backup-vault-credentials
-                  key: password
-            - name: ACCESS_KEY_ID
-              valueFrom:
-                secretKeyRef:
-                  name: backup-vault-credentials
-                  key: username
+                  key: fingerprint
+                  name: ca-fingerprint
           resources:
             requests:
               memory: 2Gi

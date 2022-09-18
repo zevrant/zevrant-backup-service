@@ -22,7 +22,7 @@ repositories {
 
 dependencies {
     implementation 'com.zevrant.services:zevrant-universal-common:8'
-    implementation 'com.zevrant.services:zevrant-security-common:12'
+    implementation 'com.zevrant.services:zevrant-security-common:18'
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
@@ -34,7 +34,6 @@ dependencies {
     implementation 'commons-codec:commons-codec:1.15'
     implementation 'org.postgresql:postgresql'
     implementation 'net.imagej:ij:1.53j'
-
     liquibaseRuntime 'org.liquibase:liquibase-groovy-dsl:3.0.2'
     testImplementation('org.springframework.boot:spring-boot-starter-test') {
         exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'

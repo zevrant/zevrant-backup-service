@@ -1,8 +1,7 @@
 server:
   ssl:
-    key-store: /usr/local/microservices/zevrant-home-services/zevrant-backup-service/zevrant-services.p12
+    key-store: /opt/acme/certs/zevrant-services.p12
     key-store-type: PKCS12
-    key-store-password: ${password}
 
 spring:
   datasource:
@@ -26,3 +25,10 @@ logging:
     com.zevrant.services: debug
     com.zevrant.services.zevrantbackupservice.services: debug
     root: info
+
+zevrant:
+  keystore:
+    password: /var/zevrant-services/keystore/password
+  vault:
+    username: /var/zevrant-services/vault/username
+    password: /var/zevrant-services/vault/password
